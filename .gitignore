@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+.venv/
+.env
+*.egg-info/
+
+# Database (contains health data - never commit)
+debi.db
+*.db
+instance/
+
+# Node
+client/node_modules/
+client/dist/
+node_modules/
+
+# Build artifacts
+*.pyc
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp

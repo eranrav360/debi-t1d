@@ -1,0 +1,1042 @@
+[
+  {
+    "name": "אול בראן, קלוגס",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 23.0
+  },
+  {
+    "name": "דגני בוקר, מחיטה מלאה",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 21.0
+  },
+  {
+    "name": "דגני בוקר, משעורה",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 17.0
+  },
+  {
+    "name": "מוזלי",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 24.0
+  },
+  {
+    "name": "מוזלי, נוסחה שוויצרית",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 16.0
+  },
+  {
+    "name": "סובין שיבולת שועל",
+    "serving_size_g": 10.0,
+    "carbs_per_serving": 5.0
+  },
+  {
+    "name": "פצפוצי אורז",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 26.0
+  },
+  {
+    "name": "פריכיות אורז, לבן",
+    "serving_size_g": 26.0,
+    "carbs_per_serving": 21.0
+  },
+  {
+    "name": "קורנפלקס",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 25.0
+  },
+  {
+    "name": "קורנפלקס, קלוגס",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 26.0
+  },
+  {
+    "name": "אורז אינסטנט, לבן, מבושל",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 42.0
+  },
+  {
+    "name": "אורז יסמין",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 42.0
+  },
+  {
+    "name": "אורז, בסמטי",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 38.0
+  },
+  {
+    "name": "אורז, לבן",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 43.0
+  },
+  {
+    "name": "אורז מלא (חום)",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 33.0
+  },
+  {
+    "name": "אורז מלא, מבושל",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 38.0
+  },
+  {
+    "name": "אורז ריזוטו, מבושל",
+    "serving_size_g": 160.0,
+    "carbs_per_serving": 53.0
+  },
+  {
+    "name": "גרגרי תירס",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 33.0
+  },
+  {
+    "name": "כוסמת",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 30.0
+  },
+  {
+    "name": "סולת מאודה",
+    "serving_size_g": 67.0,
+    "carbs_per_serving": 50.0
+  },
+  {
+    "name": "קוסקוס",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 35.0
+  },
+  {
+    "name": "תירס משומר",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 28.0
+  },
+  {
+    "name": "אפונה ירוקה, קפואה",
+    "serving_size_g": 80.0,
+    "carbs_per_serving": 7.0
+  },
+  {
+    "name": "ארטישוק ירושלמי",
+    "serving_size_g": 80.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "ברוקולי",
+    "serving_size_g": 80.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "דלעת",
+    "serving_size_g": 80.0,
+    "carbs_per_serving": 4.0
+  },
+  {
+    "name": "חסה",
+    "serving_size_g": 80.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "ירקות עליים (תרד, רוקט, פטרוזיליה, כוסברה וכו')",
+    "serving_size_g": 80.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "כרוב",
+    "serving_size_g": 80.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "כרובית",
+    "serving_size_g": 80.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "מלפפון",
+    "serving_size_g": 80.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "סלק",
+    "serving_size_g": 80.0,
+    "carbs_per_serving": 7.0
+  },
+  {
+    "name": "סלרי",
+    "serving_size_g": 80.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "פלפל ירוק",
+    "serving_size_g": 80.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "צ'יפס, קפואים ומחוממים",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 29.0
+  },
+  {
+    "name": "תפוח אדמה, אפוי",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 30.0
+  },
+  {
+    "name": "תפוח אדמה, מבושל",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 17.0
+  },
+  {
+    "name": "תפוח אדמה, מבושל 20 דקות",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 21.0
+  },
+  {
+    "name": "תפוח אדמה, מבושל 35 דקות",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 18.0
+  },
+  {
+    "name": "תפוח אדמה מקולף,  מבושל במיקרוגל",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 18.0
+  },
+  {
+    "name": "אבוקדו",
+    "serving_size_g": 80.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "אבטיח",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 6.0
+  },
+  {
+    "name": "אגס",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 13.0
+  },
+  {
+    "name": "אגס, משומר",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 11.0
+  },
+  {
+    "name": "אוכמניות",
+    "serving_size_g": 57.0,
+    "carbs_per_serving": 29.0
+  },
+  {
+    "name": "אננס",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 10.0
+  },
+  {
+    "name": "אפרסק",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 13.0
+  },
+  {
+    "name": "אפרסק, משומר",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 15.0
+  },
+  {
+    "name": "בננה",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 25.0
+  },
+  {
+    "name": "דבלי תאנים",
+    "serving_size_g": 60.0,
+    "carbs_per_serving": 26.0
+  },
+  {
+    "name": "דובדבנים",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 12.0
+  },
+  {
+    "name": "ליצ'י, משומר בסירופ, מסונן",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 20.0
+  },
+  {
+    "name": "מנגו",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 20.0
+  },
+  {
+    "name": "משמש",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 9.0
+  },
+  {
+    "name": "משמש, משומר",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 19.0
+  },
+  {
+    "name": "ענבים ירוקים",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 180.0
+  },
+  {
+    "name": "ענבים, שחורים",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 18.0
+  },
+  {
+    "name": "פפאיה",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 8.0
+  },
+  {
+    "name": "צימוקי סולטנה",
+    "serving_size_g": 60.0,
+    "carbs_per_serving": 45.0
+  },
+  {
+    "name": "צימוקים ירוקים",
+    "serving_size_g": 60.0,
+    "carbs_per_serving": 44.0
+  },
+  {
+    "name": "צימוקים שחורים",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 21.0
+  },
+  {
+    "name": "קונפיטורה, תפוזים",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 20.0
+  },
+  {
+    "name": "קוקטייל פירות,  משומר",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 16.0
+  },
+  {
+    "name": "קיווי",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 12.0
+  },
+  {
+    "name": "ריבת משמש, דלת סוכר",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 13.0
+  },
+  {
+    "name": "ריבת תות שדה",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 20.0
+  },
+  {
+    "name": "שזיף",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 14.0
+  },
+  {
+    "name": "תמרים, יבשים",
+    "serving_size_g": 60.0,
+    "carbs_per_serving": 40.0
+  },
+  {
+    "name": "תמרים, לחים",
+    "serving_size_g": 60.0,
+    "carbs_per_serving": 40.0
+  },
+  {
+    "name": "תפוז",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 11.0
+  },
+  {
+    "name": "תפוח עץ",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 13.0
+  },
+  {
+    "name": "אגוזי ברזיל",
+    "serving_size_g": 50.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "אגוזי לוּז",
+    "serving_size_g": 50.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "אגוזי מקדמיה",
+    "serving_size_g": 50.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "אגוזי פקאן",
+    "serving_size_g": 50.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "אגוזי קשיו",
+    "serving_size_g": 50.0,
+    "carbs_per_serving": 13.0
+  },
+  {
+    "name": "אפונה יבשה, מבושלת",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 9.0
+  },
+  {
+    "name": "בוטנים",
+    "serving_size_g": 50.0,
+    "carbs_per_serving": 4.0
+  },
+  {
+    "name": "בוטנים, קלויים, מלוחים",
+    "serving_size_g": 50.0,
+    "carbs_per_serving": 6.0
+  },
+  {
+    "name": "גרגרי חומוס",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 30.0
+  },
+  {
+    "name": "גרגרי חומוס מבושלים",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 30.0
+  },
+  {
+    "name": "עדשים, אדומות",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 18.0
+  },
+  {
+    "name": "עדשים אדומות, מבושלות",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 18.0
+  },
+  {
+    "name": "עדשים, ירוקות",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 18.0
+  },
+  {
+    "name": "עדשים ירוקות, מבושלות",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 17.0
+  },
+  {
+    "name": "שעועית יבשה, חומה",
+    "serving_size_g": 50.0,
+    "carbs_per_serving": 25.0
+  },
+  {
+    "name": "שעועית יבשה, לבנה",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 30.0
+  },
+  {
+    "name": "שעועית יבשה לבנה, אפויה ברוטב עגבניות",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 15.0
+  },
+  {
+    "name": "שעועית יבשה לבנה, מבושלת",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 25.0
+  },
+  {
+    "name": "שעועית יבשה לבנה, משומרת",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 17.0
+  },
+  {
+    "name": "שעועית יבשה שחורה",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 23.0
+  },
+  {
+    "name": "שעועית יבשה שחורה, מבושלת",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 23.0
+  },
+  {
+    "name": "שקדים",
+    "serving_size_g": 50.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "בגט מקמח חיטה לבן",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 15.0
+  },
+  {
+    "name": "בייגלה מקמח חיטה לבן",
+    "serving_size_g": 70.0,
+    "carbs_per_serving": 35.0
+  },
+  {
+    "name": "לחם גרגרי שיפון (פומפרניקל)",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 12.0
+  },
+  {
+    "name": "לחם כוסמת, עם 50% קמח חיטה לבן",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 21.0
+  },
+  {
+    "name": "לחם מקמח חיטה לבן",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 14.0
+  },
+  {
+    "name": "לחם מ-100% קמח שעורה",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 13.0
+  },
+  {
+    "name": "לחם מקמח חיטה שחור",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 13.0
+  },
+  {
+    "name": "לחם שיפון קל",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 14.0
+  },
+  {
+    "name": "לחם מקמח חיטה מלא",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 12.0
+  },
+  {
+    "name": "לחמנייה מקמח חיטה לבן",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 12.0
+  },
+  {
+    "name": "לחמניית המבורגר",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 15.0
+  },
+  {
+    "name": "פיתה מקמח חיטה לבן",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 17.0
+  },
+  {
+    "name": "קמח, חיטה מלאה",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 14.0
+  },
+  {
+    "name": "קמח, חיטה מלאה טחון דק",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 13.0
+  },
+  {
+    "name": "בגט צרפתי מקמח חיטה לבן",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 15.0
+  },
+  {
+    "name": "בצק עלים מקמח חיטה לבן",
+    "serving_size_g": 57.0,
+    "carbs_per_serving": 26.0
+  },
+  {
+    "name": "מאפין תפוחי עץ",
+    "serving_size_g": 60.0,
+    "carbs_per_serving": 29.0
+  },
+  {
+    "name": "סופגנייה מקמח חיטה לבן",
+    "serving_size_g": 47.0,
+    "carbs_per_serving": 23.0
+  },
+  {
+    "name": "עוגת בננה, 1 פרוסה",
+    "serving_size_g": 80.0,
+    "carbs_per_serving": 38.0
+  },
+  {
+    "name": "עוגת בננה, ללא סוכר",
+    "serving_size_g": 80.0,
+    "carbs_per_serving": 29.0
+  },
+  {
+    "name": "עוגת וניל, מתערובת מוכנה עם זיגוג וניל",
+    "serving_size_g": 111.0,
+    "carbs_per_serving": 58.0
+  },
+  {
+    "name": "עוגת ספוג (\"טורט\"), מצופה בשוקולד וקוקוס",
+    "serving_size_g": 50.0,
+    "carbs_per_serving": 29.0
+  },
+  {
+    "name": "עוגת ספוג, \"טורט\" פשוטה",
+    "serving_size_g": 63.0,
+    "carbs_per_serving": 36.0
+  },
+  {
+    "name": "עוגת שוקולד, מאבקה מוכנה",
+    "serving_size_g": 111.0,
+    "carbs_per_serving": 52.0
+  },
+  {
+    "name": "פנקייק",
+    "serving_size_g": 80.0,
+    "carbs_per_serving": 58.0
+  },
+  {
+    "name": "קרואסון",
+    "serving_size_g": 57.0,
+    "carbs_per_serving": 26.0
+  },
+  {
+    "name": "גבינה",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "גלידה",
+    "serving_size_g": 50.0,
+    "carbs_per_serving": 13.0
+  },
+  {
+    "name": "גלידה, בטעם וניל",
+    "serving_size_g": 50.0,
+    "carbs_per_serving": 6.0
+  },
+  {
+    "name": "יוגורט",
+    "serving_size_g": 200.0,
+    "carbs_per_serving": 9.0
+  },
+  {
+    "name": "יוגורט, דל שומן",
+    "serving_size_g": 200.0,
+    "carbs_per_serving": 31.0
+  },
+  {
+    "name": "יוגורט, תות שדה",
+    "serving_size_g": 200.0,
+    "carbs_per_serving": 13.0
+  },
+  {
+    "name": "חלב-סויה",
+    "serving_size_g": 250.0,
+    "carbs_per_serving": 18.0
+  },
+  {
+    "name": "חלב-סויה, דל שומן",
+    "serving_size_g": 250.0,
+    "carbs_per_serving": 17.0
+  },
+  {
+    "name": "אטריות אינסטנט,  מבושלות 2 דקות",
+    "serving_size_g": 180.0,
+    "carbs_per_serving": 40.0
+  },
+  {
+    "name": "אטריות אורז",
+    "serving_size_g": 180.0,
+    "carbs_per_serving": 39.0
+  },
+  {
+    "name": "אטריות אורז, טריות, מבושלות",
+    "serving_size_g": 180.0,
+    "carbs_per_serving": 39.0
+  },
+  {
+    "name": "אטריות אורז, יבשות, מבושלות",
+    "serving_size_g": 180.0,
+    "carbs_per_serving": 39.0
+  },
+  {
+    "name": "אטריות מקמח חיטה לבן יבשות, מבושלות",
+    "serving_size_g": 180.0,
+    "carbs_per_serving": 45.0
+  },
+  {
+    "name": "אטריות סיניות (נודלס), מבושלות",
+    "serving_size_g": 180.0,
+    "carbs_per_serving": 45.0
+  },
+  {
+    "name": "טורטליני, עם גבינה",
+    "serving_size_g": 180.0,
+    "carbs_per_serving": 21.0
+  },
+  {
+    "name": "מקרוני מבושלים",
+    "serving_size_g": 180.0,
+    "carbs_per_serving": 48.0
+  },
+  {
+    "name": "ספגטי בולונייז",
+    "serving_size_g": 360.0,
+    "carbs_per_serving": 48.0
+  },
+  {
+    "name": "ספגטי, מקמח חיטה לבן, מבושל",
+    "serving_size_g": 180.0,
+    "carbs_per_serving": 48.0
+  },
+  {
+    "name": "ספגטי, מקמח חיטה מלא, מבושל",
+    "serving_size_g": 180.0,
+    "carbs_per_serving": 44.0
+  },
+  {
+    "name": "ספגטי, מקמח מלא, מבושל 5 דקות",
+    "serving_size_g": 180.0,
+    "carbs_per_serving": 42.0
+  },
+  {
+    "name": "פטוצ'יני, ביצים",
+    "serving_size_g": 180.0,
+    "carbs_per_serving": 46.0
+  },
+  {
+    "name": "פסטה דקה, מבושלת",
+    "serving_size_g": 180.0,
+    "carbs_per_serving": 45.0
+  },
+  {
+    "name": "פסטה מאורז מלא חום",
+    "serving_size_g": 180.0,
+    "carbs_per_serving": 38.0
+  },
+  {
+    "name": "פסטה סלילים, מקמח לבן, מבושלת",
+    "serving_size_g": 180.0,
+    "carbs_per_serving": 44.0
+  },
+  {
+    "name": "פסטה עבה, מבושלת",
+    "serving_size_g": 180.0,
+    "carbs_per_serving": 48.0
+  },
+  {
+    "name": "קפליניי",
+    "serving_size_g": 180.0,
+    "carbs_per_serving": 45.0
+  },
+  {
+    "name": "רביולי",
+    "serving_size_g": 180.0,
+    "carbs_per_serving": 38.0
+  },
+  {
+    "name": "רביולי ממולא בבשר",
+    "serving_size_g": 180.0,
+    "carbs_per_serving": 38.0
+  },
+  {
+    "name": "מיץ אננס",
+    "serving_size_g": 250.0,
+    "carbs_per_serving": 34.0
+  },
+  {
+    "name": "מיץ אשכוליות",
+    "serving_size_g": 25.0,
+    "carbs_per_serving": 20.0
+  },
+  {
+    "name": "מיץ גזר",
+    "serving_size_g": 250.0,
+    "carbs_per_serving": 23.0
+  },
+  {
+    "name": "מיץ עגבניות",
+    "serving_size_g": 250.0,
+    "carbs_per_serving": 9.0
+  },
+  {
+    "name": "מיץ ענבים",
+    "serving_size_g": 250.0,
+    "carbs_per_serving": 22.0
+  },
+  {
+    "name": "מיץ תפוזים",
+    "serving_size_g": 250.0,
+    "carbs_per_serving": 26.0
+  },
+  {
+    "name": "מיץ תפוחי עץ טבעי",
+    "serving_size_g": 250.0,
+    "carbs_per_serving": 28.0
+  },
+  {
+    "name": "מיץ תפוחים, לא ממותק, מתרכיז",
+    "serving_size_g": 250.0,
+    "carbs_per_serving": 25.0
+  },
+  {
+    "name": "פנטה, משקה קל בטעם תפוזים",
+    "serving_size_g": 250.0,
+    "carbs_per_serving": 20.0
+  },
+  {
+    "name": "קוקה קולה",
+    "serving_size_g": 250.0,
+    "carbs_per_serving": 26.0
+  },
+  {
+    "name": "קוקטייל, מיץ אוכמניות",
+    "serving_size_g": 250.0,
+    "carbs_per_serving": 31.0
+  },
+  {
+    "name": "אפונה יבשה",
+    "serving_size_g": 250.0,
+    "carbs_per_serving": 41.0
+  },
+  {
+    "name": "מינסטרונה",
+    "serving_size_g": 250.0,
+    "carbs_per_serving": 18.0
+  },
+  {
+    "name": "מרק אפונה ירוקה, משומר בפחית",
+    "serving_size_g": 250.0,
+    "carbs_per_serving": 41.0
+  },
+  {
+    "name": "עגבניות",
+    "serving_size_g": 250.0,
+    "carbs_per_serving": 17.0
+  },
+  {
+    "name": "עדשים",
+    "serving_size_g": 250.0,
+    "carbs_per_serving": 21.0
+  },
+  {
+    "name": "שעועית יבשה",
+    "serving_size_g": 250.0,
+    "carbs_per_serving": 27.0
+  },
+  {
+    "name": "גלוקוז (סוכר ענבים)",
+    "serving_size_g": 10.0,
+    "carbs_per_serving": 10.0
+  },
+  {
+    "name": "דבש",
+    "serving_size_g": 25.0,
+    "carbs_per_serving": 21.0
+  },
+  {
+    "name": "לקטוז (סוכר החלב)",
+    "serving_size_g": 10.0,
+    "carbs_per_serving": 10.0
+  },
+  {
+    "name": "מלטוז (סוכר לתת)",
+    "serving_size_g": 10.0,
+    "carbs_per_serving": 10.0
+  },
+  {
+    "name": "סוכרוז (סוכר שולחני)",
+    "serving_size_g": 10.0,
+    "carbs_per_serving": 10.0
+  },
+  {
+    "name": "פרוקטוז (סוכר פירות)",
+    "serving_size_g": 10.0,
+    "carbs_per_serving": 10.0
+  },
+  {
+    "name": "ביצים",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "בשר בקר",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "בשר כבש",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "בשר עגל",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "גבינה",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "דגים",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "טונה",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "נקניקיות",
+    "serving_size_g": 100.0,
+    "carbs_per_serving": 25.0
+  },
+  {
+    "name": "נקניק סלמי",
+    "serving_size_g": 120.0,
+    "carbs_per_serving": 0.0
+  },
+  {
+    "name": "בוטנים",
+    "serving_size_g": 50.0,
+    "carbs_per_serving": 4.0
+  },
+  {
+    "name": "ופלים",
+    "serving_size_g": 35.0,
+    "carbs_per_serving": 13.0
+  },
+  {
+    "name": "חטיף \"מרס\"",
+    "serving_size_g": 60.0,
+    "carbs_per_serving": 40.0
+  },
+  {
+    "name": "חטיף אגוזים, קלוגס",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 26.0
+  },
+  {
+    "name": "חטיף קרמל",
+    "serving_size_g": 60.0,
+    "carbs_per_serving": 39.0
+  },
+  {
+    "name": "חטיפי תירס",
+    "serving_size_g": 50.0,
+    "carbs_per_serving": 25.0
+  },
+  {
+    "name": "חטיפי תירס, עם מלח",
+    "serving_size_g": 50.0,
+    "carbs_per_serving": 25.0
+  },
+  {
+    "name": "חטיפי תפוחי אדמה, מלוחים",
+    "serving_size_g": 50.0,
+    "carbs_per_serving": 18.0
+  },
+  {
+    "name": "מוס שוקולד, 2% שומן",
+    "serving_size_g": 50.0,
+    "carbs_per_serving": 11.0
+  },
+  {
+    "name": "ממרח שוקולד אגוזים נוטלה",
+    "serving_size_g": 20.0,
+    "carbs_per_serving": 12.0
+  },
+  {
+    "name": "ממתק חמאה ושוקולד",
+    "serving_size_g": 50.0,
+    "carbs_per_serving": 28.0
+  },
+  {
+    "name": "נוגט",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 12.0
+  },
+  {
+    "name": "עוגת שוקולד",
+    "serving_size_g": 111.0,
+    "carbs_per_serving": 52.0
+  },
+  {
+    "name": "פודינג אינסטנט, וניל",
+    "serving_size_g": 100.0,
+    "carbs_per_serving": 16.0
+  },
+  {
+    "name": "פודינג אינסטנט, שוקולד",
+    "serving_size_g": 100.0,
+    "carbs_per_serving": 16.0
+  },
+  {
+    "name": "פופקורן מבושל במיקרוגל",
+    "serving_size_g": 20.0,
+    "carbs_per_serving": 11.0
+  },
+  {
+    "name": "קשיו, אגוזים, מלוחים",
+    "serving_size_g": 50.0,
+    "carbs_per_serving": 13.0
+  },
+  {
+    "name": "שוקולד חלב",
+    "serving_size_g": 50.0,
+    "carbs_per_serving": 30.0
+  },
+  {
+    "name": "דוסאי",
+    "serving_size_g": 150.0,
+    "carbs_per_serving": 39.0
+  },
+  {
+    "name": "לחם תורכי, מקמח לבן",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 17.0
+  },
+  {
+    "name": "מג'דרה",
+    "serving_size_g": 250.0,
+    "carbs_per_serving": 41.0
+  },
+  {
+    "name": "מטבל חומוס",
+    "serving_size_g": 30.0,
+    "carbs_per_serving": 5.0
+  },
+  {
+    "name": "סושי מסלמון",
+    "serving_size_g": 100.0,
+    "carbs_per_serving": 36.0
+  },
+  {
+    "name": "עלי גפן ממולאים (באורז לבן ובבשר כבש, עם רוטב עגבניות)",
+    "serving_size_g": 100.0,
+    "carbs_per_serving": 15.0
+  },
+  {
+    "name": "צ'פאטי, מקמח חיטה לבן",
+    "serving_size_g": 60.0,
+    "carbs_per_serving": 30.0
+  },
+  {
+    "name": "פיצה, דקה ופריכה",
+    "serving_size_g": 100.0,
+    "carbs_per_serving": 22.0
+  },
+  {
+    "name": "פיצה, דקה ופריכה (13.2% שומן)",
+    "serving_size_g": 100.0,
+    "carbs_per_serving": 22.0
+  },
+  {
+    "name": "פיצה, עם גבינה",
+    "serving_size_g": 100.0,
+    "carbs_per_serving": 27.0
+  },
+  {
+    "name": "פיצה, רגילה (עם גבינה, עגבניות וכו')",
+    "serving_size_g": 100.0,
+    "carbs_per_serving": 27.0
+  }
+]
