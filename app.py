@@ -71,6 +71,10 @@ def init_db():
         '''CREATE TABLE IF NOT EXISTS tregludec_records (
             id {PK}, recorded_date TEXT NOT NULL,
             dose REAL NOT NULL, notes TEXT DEFAULT \'\')''',
+        '''CREATE TABLE IF NOT EXISTS free_meals (
+            id {PK}, recorded_at TEXT NOT NULL,
+            carbs REAL DEFAULT 0, pre_sugar INTEGER,
+            post_1hr_sugar INTEGER, notes TEXT DEFAULT \'\')''',
     ]
     with get_conn() as conn:
         for ddl in ddl_templates:
@@ -221,6 +225,47 @@ def delete_tregludec(record_id):
         conn.commit()
     return jsonify({'status': 'ok'})
 
+# --- Free Meals API (eating without insulin) ---
+
+@app.route('/api/free-meals', methods=['GET'])
+def list_free_meals():
+    with get_conn() as conn:
+        result = conn.execute(
+            text('SELECT * FROM free_meals ORDER BY recorded_at DESC LIMIT 50')
+        )
+        return jsonify(rows(result))
+
+@app.route('/api/free-meals', methods=['POST'])
+def add_free_meal():
+    d = request.json
+    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+    with get_conn() as conn:
+        new_id = db_insert(conn,
+            'INSERT INTO free_meals (recorded_at, carbs, pre_sugar, notes) VALUES (:at, :carbs, :pre, :notes)',
+            {'at': d.get('recorded_at', now), 'carbs': float(d.get('carbs', 0)),
+             'pre': int(d['pre_sugar']) if d.get('pre_sugar') else None,
+             'notes': d.get('notes', '')}
+        )
+    return jsonify({'id': new_id, 'status': 'ok'})
+
+@app.route('/api/free-meals/<int:record_id>/post_sugar', methods=['PATCH'])
+def update_free_meal_post_sugar(record_id):
+    d = request.json
+    with get_conn() as conn:
+        conn.execute(
+            text('UPDATE free_meals SET post_1hr_sugar=:v WHERE id=:id'),
+            {'v': int(d['post_1hr_sugar']), 'id': record_id}
+        )
+        conn.commit()
+    return jsonify({'status': 'ok'})
+
+@app.route('/api/free-meals/<int:record_id>', methods=['DELETE'])
+def delete_free_meal(record_id):
+    with get_conn() as conn:
+        conn.execute(text('DELETE FROM free_meals WHERE id=:id'), {'id': record_id})
+        conn.commit()
+    return jsonify({'status': 'ok'})
+
 # --- Statistics ---
 
 @app.route('/api/statistics', methods=['GET'])
@@ -242,6 +287,12 @@ def _calc_stats():
             SELECT pre_sugar FROM novorapid_records
             WHERE (total_carbs = 0 OR total_carbs IS NULL) AND pre_sugar IS NOT NULL
             ORDER BY recorded_at DESC LIMIT 14
+        ''')))
+
+        free_meal_records = rows(conn.execute(text('''
+            SELECT pre_sugar, post_1hr_sugar, carbs FROM free_meals
+            WHERE pre_sugar IS NOT NULL AND post_1hr_sugar IS NOT NULL
+            ORDER BY recorded_at DESC LIMIT 50
         ''')))
 
     icr_values, isf_values = [], []
@@ -277,12 +328,25 @@ def _calc_stats():
                 else:
                     tregludec_recommendation = f"המינון הנוכחי נראה מתאים (סוכר בצום ממוצע: {fasting_avg})"
 
+    free_meal_excursion = None
+    free_meal_excursion_per_carb = None
+    if free_meal_records:
+        deltas = [r['post_1hr_sugar'] - r['pre_sugar'] for r in free_meal_records]
+        free_meal_excursion = round(statistics.mean(deltas), 1)
+        with_carbs = [r for r in free_meal_records if r['carbs'] and r['carbs'] > 0]
+        if with_carbs:
+            per_carb = [(r['post_1hr_sugar'] - r['pre_sugar']) / r['carbs'] for r in with_carbs]
+            free_meal_excursion_per_carb = round(statistics.mean(per_carb), 2)
+
     confidence = 'high' if len(icr_values) >= 10 else 'medium' if len(icr_values) >= 3 else 'low'
     return {
         'icr': icr, 'isf': isf, 'tregludec_current': current_tregludec,
         'tregludec_recommendation': tregludec_recommendation, 'fasting_avg': fasting_avg,
         'data_points': {'icr': len(icr_values), 'isf': len(isf_values)},
-        'confidence': confidence, 'total_records': len(records)
+        'confidence': confidence, 'total_records': len(records),
+        'free_meal_excursion': free_meal_excursion,
+        'free_meal_excursion_per_carb': free_meal_excursion_per_carb,
+        'free_meal_count': len(free_meal_records)
     }
 
 # --- Dashboard ---
@@ -301,9 +365,13 @@ def dashboard():
         last_record = row(conn.execute(
             text('SELECT * FROM novorapid_records ORDER BY recorded_at DESC LIMIT 1')
         ))
+        today_free = rows(conn.execute(
+            text("SELECT * FROM free_meals WHERE recorded_at LIKE :d ORDER BY recorded_at DESC"),
+            {'d': f'{today}%'}
+        ))
     return jsonify({
         'today_novorapid': today_novo, 'today_tregludec': today_treg,
-        'last_record': last_record, 'stats': _calc_stats()
+        'last_record': last_record, 'today_free_meals': today_free, 'stats': _calc_stats()
     })
 
 # --- Serve React SPA ---

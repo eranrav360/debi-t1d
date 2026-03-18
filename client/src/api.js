@@ -53,3 +53,13 @@ export const getStatistics = () =>
 
 export const getDashboard = () =>
   fetch(`${BASE}/dashboard`).then(r => r.json())
+
+export const getFreeMeals = () =>
+  fetch(`${BASE}/free-meals`).then(r => r.json())
+
+export const recordFreeMeal = (data) => post(`${BASE}/free-meals`, data)
+
+export const updateFreeMealPostSugar = (id, postSugar) =>
+  patch(`${BASE}/free-meals/${id}/post_sugar`, { post_1hr_sugar: postSugar })
+
+export const deleteFreeMeal = (id) => del(`${BASE}/free-meals/${id}`)

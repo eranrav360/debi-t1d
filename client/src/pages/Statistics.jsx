@@ -123,6 +123,44 @@ export default function Statistics() {
         </div>
       </div>
 
+      {/* Free meal excursion */}
+      <div className="card">
+        <div className="card-title">ארוחות ללא הזרקה — תגובת גוף</div>
+        {stats.free_meal_count > 0 ? (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--primary)' }}>
+                  {stats.free_meal_excursion > 0 ? `+${stats.free_meal_excursion}` : stats.free_meal_excursion}
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--gray-500)', marginTop: 4 }}>
+                  שינוי סוכר ממוצע ללא אינסולין (mg/dL)
+                </div>
+              </div>
+              {stats.free_meal_excursion_per_carb != null && (
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--primary)' }}>
+                    {stats.free_meal_excursion_per_carb > 0 ? `+${stats.free_meal_excursion_per_carb}` : stats.free_meal_excursion_per_carb}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--gray-400)' }}>mg/dL לגרם פחמ'</div>
+                </div>
+              )}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 8 }}>
+              {stats.free_meal_count} מדידות עם סוכר לפני ואחרי שעה
+            </div>
+          </>
+        ) : (
+          <div className="alert alert-info" style={{ marginBottom: 0, fontSize: 13 }}>
+            עדיין אין נתונים. רשמי ארוחות ללא הזרקה עם מדידת סוכר לפני ואחרי שעה כדי לראות כאן את תגובת הגוף.
+          </div>
+        )}
+        <div style={{ marginTop: 12, fontSize: 13, color: 'var(--gray-500)', borderTop: '1px solid var(--gray-100)', paddingTop: 10 }}>
+          <strong>כיצד מחושב:</strong> ממוצע של (סוכר אחרי שעה − סוכר לפני) לכל ארוחות ללא הזרקה שיש בהן שתי מדידות.
+          מאפשר לראות כמה הסוכר עולה ללא אינסולין, ולזהות ארוחות שמשפיעות פחות או יותר.
+        </div>
+      </div>
+
       {/* Formula explanation */}
       <div className="card">
         <div className="card-title">נוסחת חישוב מינון</div>

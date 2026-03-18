@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getNovorapidHistory, getTregludecHistory, updatePostSugar, deleteNovorapid, deleteTregludec } from '../api'
+import { getNovorapidHistory, getTregludecHistory, updatePostSugar, deleteNovorapid, deleteTregludec, getFreeMeals, updateFreeMealPostSugar, deleteFreeMeal } from '../api'
 import SugarBadge from '../components/SugarBadge'
 
 function fmtDT(dt) {
@@ -13,14 +13,18 @@ export default function History() {
   const [tab, setTab] = useState('novorapid')
   const [novoRecords, setNovoRecords] = useState([])
   const [tregRecords, setTregRecords] = useState([])
+  const [freeRecords, setFreeRecords] = useState([])
   const [editingPost, setEditingPost] = useState(null)
   const [postVal, setPostVal] = useState('')
+  const [editingFreePost, setEditingFreePost] = useState(null)
+  const [freePostVal, setFreePostVal] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([getNovorapidHistory(), getTregludecHistory()]).then(([novo, treg]) => {
+    Promise.all([getNovorapidHistory(), getTregludecHistory(), getFreeMeals()]).then(([novo, treg, free]) => {
       setNovoRecords(novo)
       setTregRecords(treg)
+      setFreeRecords(free)
       setLoading(false)
     })
   }, [])
@@ -45,6 +49,20 @@ export default function History() {
     setTregRecords(prev => prev.filter(r => r.id !== id))
   }
 
+  async function handleUpdateFreePost(id) {
+    if (!freePostVal) return
+    await updateFreeMealPostSugar(id, parseInt(freePostVal))
+    setFreeRecords(prev => prev.map(r => r.id === id ? { ...r, post_1hr_sugar: parseInt(freePostVal) } : r))
+    setEditingFreePost(null)
+    setFreePostVal('')
+  }
+
+  async function handleDeleteFree(id) {
+    if (!confirm('למחוק רשומה זו?')) return
+    await deleteFreeMeal(id)
+    setFreeRecords(prev => prev.filter(r => r.id !== id))
+  }
+
   if (loading) return <div className="loading">טוען...</div>
 
   return (
@@ -57,6 +75,9 @@ export default function History() {
         </button>
         <button className={`tab ${tab === 'tregludec' ? 'active' : ''}`} onClick={() => setTab('tregludec')}>
           💊 טרגלודק ({tregRecords.length})
+        </button>
+        <button className={`tab ${tab === 'free' ? 'active' : ''}`} onClick={() => setTab('free')}>
+          🥗 ללא הזרקה ({freeRecords.length})
         </button>
       </div>
 
@@ -142,6 +163,63 @@ export default function History() {
               <div style={{ marginTop: 4 }}>
                 <button className="btn btn-ghost btn-sm" style={{ fontSize: 12, color: 'var(--danger)' }}
                   onClick={() => handleDeleteTreg(r.id)}>
+                  מחק
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === 'free' && (
+        <div className="card" style={{ padding: 0 }}>
+          {freeRecords.length === 0 && <div className="empty">אין רשומות עדיין</div>}
+          {freeRecords.map(r => (
+            <div key={r.id} className="history-item">
+              <div className="history-meta">
+                <span className="history-date">{fmtDT(r.recorded_at)}</span>
+                {r.carbs > 0 && <span className="history-dose">{r.carbs}ג פחמ'</span>}
+              </div>
+
+              <div className="history-sugars">
+                <span style={{ fontSize: 13, color: 'var(--gray-500)' }}>לפני:</span>
+                <SugarBadge value={r.pre_sugar} />
+                <span style={{ color: 'var(--gray-300)' }}>·</span>
+                <span style={{ fontSize: 13, color: 'var(--gray-500)' }}>אחרי:</span>
+                {r.post_1hr_sugar
+                  ? <SugarBadge value={r.post_1hr_sugar} />
+                  : editingFreePost === r.id
+                    ? (
+                      <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                        <input
+                          type="number"
+                          value={freePostVal}
+                          onChange={e => setFreePostVal(e.target.value)}
+                          className="input input-sm input-num"
+                          autoFocus
+                          style={{ width: 70 }}
+                          onKeyDown={e => e.key === 'Enter' && handleUpdateFreePost(r.id)}
+                        />
+                        <button className="btn btn-primary btn-sm" onClick={() => handleUpdateFreePost(r.id)}>✓</button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => setEditingFreePost(null)}>✕</button>
+                      </span>
+                    )
+                    : (
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => { setEditingFreePost(r.id); setFreePostVal('') }}
+                      >
+                        + הוסף סוכר אחרי שעה
+                      </button>
+                    )
+                }
+              </div>
+
+              {r.notes && <div className="history-details">הערות: {r.notes}</div>}
+
+              <div style={{ marginTop: 4 }}>
+                <button className="btn btn-ghost btn-sm" style={{ fontSize: 12, color: 'var(--danger)' }}
+                  onClick={() => handleDeleteFree(r.id)}>
                   מחק
                 </button>
               </div>

@@ -22,7 +22,7 @@ export default function Dashboard() {
 
   if (!data) return <div className="loading">טוען...</div>
 
-  const { today_novorapid, today_tregludec, last_record, stats } = data
+  const { today_novorapid, today_tregludec, last_record, today_free_meals = [], stats } = data
   const totalDoseToday = today_novorapid.reduce((s, r) => s + r.dose_given, 0)
 
   return (
@@ -46,6 +46,10 @@ export default function Dashboard() {
           <span className="icon">📋</span>
           <span>היסטוריה</span>
         </Link>
+        <Link to="/free-meal" className="quick-action">
+          <span className="icon">🥗</span>
+          <span>ארוחה ללא הזרקה</span>
+        </Link>
       </div>
 
       {/* Today summary */}
@@ -61,6 +65,13 @@ export default function Dashboard() {
             <div className="stat-label">סה"כ יחידות נובו</div>
           </div>
         </div>
+        {today_free_meals.length > 0 && (
+          <div style={{ marginTop: 10 }}>
+            <div className="alert alert-info" style={{ marginBottom: 0 }}>
+              🥗 {today_free_meals.length} ארוחה/ות ללא הזרקה היום
+            </div>
+          </div>
+        )}
         <div style={{ marginTop: 10 }}>
           {today_tregludec ? (
             <div className="alert alert-success">

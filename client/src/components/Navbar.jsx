@@ -8,7 +8,8 @@ export default function Navbar() {
       <NavLink to="/injection" className={({ isActive }) => isActive ? 'active' : ''}>💉 הזרקה</NavLink>
       <NavLink to="/history" className={({ isActive }) => isActive ? 'active' : ''}>📋 היסטוריה</NavLink>
       <NavLink to="/statistics" className={({ isActive }) => isActive ? 'active' : ''}>📊 סטטיסטיקה</NavLink>
-      <NavLink to="/foods" className={({ isActive }) => isActive ? 'active' : ''}>🥗 מזונות</NavLink>
+      <NavLink to="/free-meal" className={({ isActive }) => isActive ? 'active' : ''}>🥗 ללא הזרקה</NavLink>
+      <NavLink to="/foods" className={({ isActive }) => isActive ? 'active' : ''}>🗂️ מזונות</NavLink>
       <span className="navbar-title">💉 דבי</span>
     </nav>
   )
