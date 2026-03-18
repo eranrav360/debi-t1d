@@ -316,7 +316,9 @@ def serve_spa(path):
         return send_from_directory(dist, path)
     return send_from_directory(dist, 'index.html')
 
+# Run init_db when imported by Gunicorn (or any WSGI server), not just __main__
+init_db()
+
 if __name__ == '__main__':
-    init_db()
     print("דבי | ניהול סוכרת סוג 1 — http://localhost:5000")
     app.run(debug=True, port=5000)
