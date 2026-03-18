@@ -2,14 +2,14 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from sqlalchemy import create_engine, text, event
 from sqlalchemy.pool import NullPool, StaticPool
-import os, json, statistics
+import os, json, statistics, re
 from datetime import datetime, date
 
 # --- Database setup ---
 _db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'debi.db')
 _raw_url = os.environ.get('DATABASE_URL', f'sqlite:///{_db_path}')
-# Render provides postgres:// but SQLAlchemy needs postgresql+psycopg2://
-DATABASE_URL = _raw_url.replace('postgres://', 'postgresql+psycopg2://', 1)
+# Render gives postgres://, Neon gives postgresql:// — both need postgresql+psycopg2://
+DATABASE_URL = re.sub(r'^postgres(ql)?://', 'postgresql+psycopg2://', _raw_url)
 IS_PG = 'postgresql' in DATABASE_URL
 
 if IS_PG:
