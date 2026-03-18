@@ -1,6 +1,16 @@
 import { useState } from 'react'
 import { recordNovorapid, recordTregludec, updatePostSugar } from '../api'
 
+function nowLocal() {
+  const d = new Date()
+  d.setSeconds(0, 0)
+  return d.toISOString().slice(0, 16)
+}
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10)
+}
+
 export default function RecordInjection() {
   const [type, setType] = useState('novorapid')
 
@@ -8,6 +18,7 @@ export default function RecordInjection() {
   const [preSugar, setPreSugar] = useState('')
   const [dose, setDose] = useState('')
   const [notes, setNotes] = useState('')
+  const [recordedAt, setRecordedAt] = useState(nowLocal())
   const [saved, setSaved] = useState(null)
   const [postSugar, setPostSugar] = useState('')
   const [postUpdated, setPostUpdated] = useState(false)
@@ -15,6 +26,7 @@ export default function RecordInjection() {
   // Tregludec fields
   const [tregDose, setTregDose] = useState('')
   const [tregNotes, setTregNotes] = useState('')
+  const [tregDate, setTregDate] = useState(todayISO())
   const [tregSaved, setTregSaved] = useState(false)
 
   const [saving, setSaving] = useState(false)
@@ -27,7 +39,8 @@ export default function RecordInjection() {
       pre_sugar: parseInt(preSugar),
       dose_given: parseFloat(dose),
       notes,
-      meal_items: []
+      meal_items: [],
+      recorded_at: recordedAt.replace('T', ' ')
     })
     setSaved(result)
     setSaving(false)
@@ -47,12 +60,13 @@ export default function RecordInjection() {
     setDose('')
     setNotes('')
     setPostSugar('')
+    setRecordedAt(nowLocal())
   }
 
   async function handleRecordTreg() {
     if (!tregDose || saving) return
     setSaving(true)
-    await recordTregludec({ dose: parseFloat(tregDose), notes: tregNotes })
+    await recordTregludec({ dose: parseFloat(tregDose), notes: tregNotes, recorded_date: tregDate })
     setTregSaved(true)
     setSaving(false)
   }
@@ -61,6 +75,7 @@ export default function RecordInjection() {
     setTregSaved(false)
     setTregDose('')
     setTregNotes('')
+    setTregDate(todayISO())
   }
 
   return (
@@ -87,6 +102,15 @@ export default function RecordInjection() {
 
         {type === 'novorapid' && !saved && (
           <>
+            <div className="form-group">
+              <label>תאריך ושעה</label>
+              <input
+                type="datetime-local"
+                value={recordedAt}
+                onChange={e => setRecordedAt(e.target.value)}
+                className="input"
+              />
+            </div>
             <div className="form-group">
               <label>סוכר לפני הזרקה (mg/dL)</label>
               <input
@@ -165,6 +189,15 @@ export default function RecordInjection() {
           <>
             <div className="alert alert-info" style={{ marginBottom: 12 }}>
               💡 טרגלודק הוא אינסולין ארוך-טווח. ניתן פעם ביום, בדרך כלל בשעה קבועה.
+            </div>
+            <div className="form-group">
+              <label>תאריך</label>
+              <input
+                type="date"
+                value={tregDate}
+                onChange={e => setTregDate(e.target.value)}
+                className="input"
+              />
             </div>
             <div className="form-group">
               <label>מינון יומי (יחידות)</label>

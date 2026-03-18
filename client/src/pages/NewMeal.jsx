@@ -1,6 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { getFoods, getRecommendation, recordNovorapid, updatePostSugar } from '../api'
 
+function nowLocal() {
+  const d = new Date()
+  d.setSeconds(0, 0)
+  return d.toISOString().slice(0, 16)
+}
+
 export default function NewMeal() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
@@ -8,6 +14,7 @@ export default function NewMeal() {
   const [addingFood, setAddingFood] = useState(null)
   const [tempWeight, setTempWeight] = useState('')
   const [preSugar, setPreSugar] = useState('')
+  const [recordedAt, setRecordedAt] = useState(nowLocal())
   const [rec, setRec] = useState(null)
   const [doseGiven, setDoseGiven] = useState('')
   const [saved, setSaved] = useState(null)
@@ -84,7 +91,8 @@ export default function NewMeal() {
       total_carbs: totalCarbs,
       pre_sugar: parseInt(preSugar) || null,
       dose_given: parseFloat(doseGiven),
-      meal_items: items
+      meal_items: items,
+      recorded_at: recordedAt.replace('T', ' ')
     })
     setSaved(result)
     setSaving(false)
@@ -105,6 +113,7 @@ export default function NewMeal() {
     setSaved(null)
     setPostUpdated(false)
     setItems([])
+    setRecordedAt(nowLocal())
   }
 
   const weightNum = parseFloat(tempWeight)
@@ -240,6 +249,15 @@ export default function NewMeal() {
           {items.length > 0 && (
             <div className="card">
               <div className="card-title">המלצת מינון נובורפיד</div>
+              <div className="form-group">
+                <label>תאריך ושעה</label>
+                <input
+                  type="datetime-local"
+                  value={recordedAt}
+                  onChange={e => setRecordedAt(e.target.value)}
+                  className="input"
+                />
+              </div>
               <div className="form-row">
                 <div>
                   <label>סוכר לפני הארוחה (mg/dL)</label>
