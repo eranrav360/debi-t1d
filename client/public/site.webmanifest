@@ -1,0 +1,23 @@
+{
+  "name": "דבי | ניהול סוכרת",
+  "short_name": "דבי",
+  "description": "ניהול סוכרת סוג 1 — הזרקות, ארוחות וסטטיסטיקה",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1D4ED8",
+  "theme_color": "#2563EB",
+  "dir": "rtl",
+  "lang": "he",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -37,11 +37,11 @@ body {
 .navbar {
   background: var(--primary);
   color: white;
-  padding: 0 16px;
+  padding: env(safe-area-inset-top, 0) 16px 0;
   display: flex;
   align-items: center;
   gap: 4px;
-  height: 56px;
+  min-height: calc(56px + env(safe-area-inset-top, 0px));
   position: sticky;
   top: 0;
   z-index: 100;
@@ -374,10 +374,71 @@ label { display: block; font-size: 13px; font-weight: 600; color: var(--gray-700
 }
 .post-sugar-row label { margin: 0; white-space: nowrap; font-size: 13px; }
 
-/* Responsive */
-@media (max-width: 480px) {
-  .stats-grid { grid-template-columns: 1fr 1fr; }
-  .quick-actions { grid-template-columns: 1fr 1fr; }
-  .navbar a { padding: 6px 7px; font-size: 12px; }
-  .navbar-title { font-size: 16px; }
+/* ── Mobile ────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+
+  /* Navbar: scrollable strip, no overflow */
+  .navbar {
+    min-height: calc(52px + env(safe-area-inset-top, 0px));
+    padding: env(safe-area-inset-top, 0) 6px 0;
+    gap: 2px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;          /* Firefox */
+    -webkit-overflow-scrolling: touch;
+  }
+  .navbar::-webkit-scrollbar { display: none; }
+  .navbar a {
+    padding: 7px 10px;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .navbar-title { display: none; }
+
+  /* Page */
+  .page {
+    padding: 14px 12px calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+  .page-title { font-size: 20px; margin-bottom: 12px; }
+
+  /* Cards */
+  .card { padding: 14px 12px; margin-bottom: 10px; }
+
+  /* Inputs */
+  .input { font-size: 16px; }   /* 16px prevents iOS auto-zoom on focus */
+  .input-num {
+    width: 100%;
+    text-align: right;
+  }
+
+  /* Form row: items take full width when they wrap */
+  .form-row { gap: 8px; }
+  .form-row > div { flex: 1 1 100%; }
+  .form-row > .btn { flex: 1 1 auto; }
+
+  /* History */
+  .history-sugars { flex-wrap: wrap; row-gap: 4px; }
+  .history-date { font-size: 11px; }
+
+  /* Tabs – 3-tab variant stays readable */
+  .tabs { gap: 3px; }
+  .tab { font-size: 12px; padding: 7px 4px; }
+
+  /* Stats */
+  .stat-value { font-size: 22px; }
+
+  /* Quick actions – 2-col stays, just slightly tighter */
+  .quick-action { padding: 14px 8px; font-size: 12px; }
+  .quick-action .icon { font-size: 26px; }
+
+  /* Recommendation rows */
+  .rec-row { font-size: 13px; }
+  .rec-row.total { font-size: 15px; }
+
+  /* Alert */
+  .alert { font-size: 13px; }
+
+  /* Touch targets: make sure every button is at least 44px tall */
+  .btn { min-height: 44px; }
+  .btn-sm { min-height: 36px; }
 }
