@@ -54,6 +54,8 @@ export const getStatistics = () =>
 export const getDashboard = () =>
   fetch(`${BASE}/dashboard`).then(r => r.json())
 
+export const recordSensorChange = () => post(`${BASE}/sensor`, {})
+
 export const getFreeMeals = () =>
   fetch(`${BASE}/free-meals`).then(r => r.json())
 

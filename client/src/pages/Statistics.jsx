@@ -104,9 +104,21 @@ export default function Statistics() {
           )}
         </div>
 
-        {stats.tregludec_recommendation && (
+        {stats.hypo_warning && (
+          <div className="alert alert-warning" style={{ marginTop: 12, marginBottom: 4 }}>
+            ⚠️ {stats.hypo_warning}
+          </div>
+        )}
+
+        {stats.tregludec_recommendation && !stats.hypo_warning && (
           <div className={`alert ${stats.fasting_avg > 130 || stats.fasting_avg < 80 ? 'alert-warning' : 'alert-success'}`} style={{ marginTop: 12, marginBottom: 0 }}>
             💊 {stats.tregludec_recommendation}
+          </div>
+        )}
+
+        {stats.consecutive_morning_hypos > 0 && stats.consecutive_morning_hypos < 3 && (
+          <div className="alert alert-info" style={{ marginTop: 8, marginBottom: 0, fontSize: 13 }}>
+            ℹ️ {stats.consecutive_morning_hypos} בקר/ים עם היפוגליקמיה ברצף — עקבי אחר המגמה
           </div>
         )}
 

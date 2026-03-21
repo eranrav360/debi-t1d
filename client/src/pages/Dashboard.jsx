@@ -1,7 +1,24 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getDashboard } from '../api'
+import { getDashboard, recordSensorChange } from '../api'
 import SugarBadge from '../components/SugarBadge'
+
+const SENSOR_DAYS = 10
+
+function getSensorStatus(latest) {
+  if (!latest) return { label: 'לא נרשמה החלפת חיישן', urgent: true, expired: false, hoursLeft: null }
+  const changedAt = new Date(latest.changed_at.replace(' ', 'T'))
+  const expiresAt = new Date(changedAt.getTime() + SENSOR_DAYS * 24 * 60 * 60 * 1000)
+  const msLeft = expiresAt - Date.now()
+  if (msLeft <= 0) return { label: 'החיישן פג תוקף — החלפה נדרשת!', urgent: true, expired: true, hoursLeft: 0 }
+  const hoursLeft = Math.floor(msLeft / (1000 * 60 * 60))
+  const daysLeft = Math.floor(hoursLeft / 24)
+  const hRem = hoursLeft % 24
+  const label = daysLeft > 0
+    ? `החלפת חיישן עוד ${daysLeft} ימים${hRem > 0 ? ` ו-${hRem} שעות` : ''}`
+    : `החלפת חיישן עוד ${hoursLeft} שעות!`
+  return { label, urgent: hoursLeft < 24, expired: false, hoursLeft }
+}
 
 function formatTime(dt) {
   if (!dt) return ''
@@ -15,19 +32,64 @@ function formatDate(dt) {
 
 export default function Dashboard() {
   const [data, setData] = useState(null)
+  const [replacingSensor, setReplacingSensor] = useState(false)
 
   useEffect(() => {
     getDashboard().then(setData)
   }, [])
 
+  async function handleSensorReplace() {
+    setReplacingSensor(true)
+    await recordSensorChange()
+    const fresh = await getDashboard()
+    setData(fresh)
+    setReplacingSensor(false)
+  }
+
   if (!data) return <div className="loading">טוען...</div>
 
-  const { today_novorapid, today_tregludec, last_record, today_free_meals = [], stats } = data
+  const { today_novorapid, today_tregludec, last_record, today_free_meals = [], latest_sensor, stats } = data
   const totalDoseToday = today_novorapid.reduce((s, r) => s + r.dose_given, 0)
+  const sensor = getSensorStatus(latest_sensor)
 
   return (
     <div className="page">
       <h1 className="page-title">לוח בקרה</h1>
+
+      {/* Dexcom sensor banner */}
+      <div style={{
+        background: sensor.urgent ? 'var(--danger)' : 'var(--success)',
+        color: '#fff',
+        borderRadius: 12,
+        padding: '12px 16px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: 10,
+        marginBottom: 12
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 20 }}>📡</span>
+          <span style={{ fontWeight: 600, fontSize: 14 }}>{sensor.label}</span>
+        </div>
+        <button
+          onClick={handleSensorReplace}
+          disabled={replacingSensor}
+          style={{
+            background: 'rgba(255,255,255,0.25)',
+            border: '1px solid rgba(255,255,255,0.5)',
+            color: '#fff',
+            borderRadius: 8,
+            padding: '5px 12px',
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {replacingSensor ? '...' : '🔄 החלפתי'}
+        </button>
+      </div>
 
       <div className="quick-actions">
         <Link to="/meal" className="quick-action">
@@ -81,6 +143,11 @@ export default function Dashboard() {
             <div className="alert alert-warning">
               ⚠️ טרגלודק לא נרשם היום
               <Link to="/injection" style={{ marginRight: 8, fontWeight: 700, color: 'inherit' }}>→ רשום עכשיו</Link>
+            </div>
+          )}
+          {stats.hypo_warning && (
+            <div className="alert alert-warning" style={{ marginTop: 8, marginBottom: 0 }}>
+              ⚠️ {stats.hypo_warning}
             </div>
           )}
         </div>

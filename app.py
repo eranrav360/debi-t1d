@@ -75,10 +75,21 @@ def init_db():
             id {PK}, recorded_at TEXT NOT NULL,
             carbs REAL DEFAULT 0, pre_sugar INTEGER,
             post_1hr_sugar INTEGER, notes TEXT DEFAULT \'\')''',
+        '''CREATE TABLE IF NOT EXISTS sensor_changes (
+            id {PK}, changed_at TEXT NOT NULL)''',
     ]
     with get_conn() as conn:
         for ddl in ddl_templates:
             conn.execute(text(ddl.format(PK=pk)))
+        # Migration: add had_hypo_morning to tregludec_records (may already exist)
+        try:
+            if IS_PG:
+                conn.execute(text('ALTER TABLE tregludec_records ADD COLUMN IF NOT EXISTS had_hypo_morning INTEGER DEFAULT NULL'))
+            else:
+                conn.execute(text('ALTER TABLE tregludec_records ADD COLUMN had_hypo_morning INTEGER DEFAULT NULL'))
+            conn.commit()
+        except Exception:
+            pass  # column already exists
         count = conn.execute(text('SELECT COUNT(*) FROM foods')).scalar()
         if count == 0:
             foods_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'foods.json')
@@ -210,11 +221,13 @@ def list_tregludec():
 @app.route('/api/tregludec', methods=['POST'])
 def add_tregludec():
     d = request.json
+    hypo = d.get('had_hypo_morning')
+    hypo_val = 1 if hypo else (0 if hypo is False else None)
     with get_conn() as conn:
         db_insert(conn,
-            'INSERT INTO tregludec_records (recorded_date, dose, notes) VALUES (:d, :dose, :notes)',
+            'INSERT INTO tregludec_records (recorded_date, dose, notes, had_hypo_morning) VALUES (:d, :dose, :notes, :hypo)',
             {'d': d.get('recorded_date', date.today().isoformat()),
-             'dose': float(d['dose']), 'notes': d.get('notes', '')}
+             'dose': float(d['dose']), 'notes': d.get('notes', ''), 'hypo': hypo_val}
         )
     return jsonify({'status': 'ok'})
 
@@ -266,6 +279,15 @@ def delete_free_meal(record_id):
         conn.commit()
     return jsonify({'status': 'ok'})
 
+# --- Dexcom Sensor API ---
+
+@app.route('/api/sensor', methods=['POST'])
+def record_sensor_change():
+    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+    with get_conn() as conn:
+        db_insert(conn, 'INSERT INTO sensor_changes (changed_at) VALUES (:at)', {'at': now})
+    return jsonify({'status': 'ok', 'changed_at': now})
+
 # --- Statistics ---
 
 @app.route('/api/statistics', methods=['GET'])
@@ -293,6 +315,12 @@ def _calc_stats():
             SELECT pre_sugar, post_1hr_sugar, carbs FROM free_meals
             WHERE pre_sugar IS NOT NULL AND post_1hr_sugar IS NOT NULL
             ORDER BY recorded_at DESC LIMIT 50
+        ''')))
+
+        hypo_records = rows(conn.execute(text('''
+            SELECT had_hypo_morning FROM tregludec_records
+            WHERE had_hypo_morning IS NOT NULL
+            ORDER BY recorded_date DESC LIMIT 3
         ''')))
 
     icr_values, isf_values = [], []
@@ -338,6 +366,17 @@ def _calc_stats():
             per_carb = [(r['post_1hr_sugar'] - r['pre_sugar']) / r['carbs'] for r in with_carbs]
             free_meal_excursion_per_carb = round(statistics.mean(per_carb), 2)
 
+    # Count consecutive morning hypos (streak must be unbroken from most recent)
+    consecutive_hypos = 0
+    for r in hypo_records:
+        if r['had_hypo_morning'] == 1:
+            consecutive_hypos += 1
+        else:
+            break
+    hypo_warning = None
+    if consecutive_hypos >= 3 and current_tregludec:
+        hypo_warning = f"3 בקרים ברציפות עם היפוגליקמיה — שקולי להקטין מינון ל-{max(1, int(current_tregludec) - 1)} יחידות"
+
     confidence = 'high' if len(icr_values) >= 10 else 'medium' if len(icr_values) >= 3 else 'low'
     return {
         'icr': icr, 'isf': isf, 'tregludec_current': current_tregludec,
@@ -346,7 +385,9 @@ def _calc_stats():
         'confidence': confidence, 'total_records': len(records),
         'free_meal_excursion': free_meal_excursion,
         'free_meal_excursion_per_carb': free_meal_excursion_per_carb,
-        'free_meal_count': len(free_meal_records)
+        'free_meal_count': len(free_meal_records),
+        'hypo_warning': hypo_warning,
+        'consecutive_morning_hypos': consecutive_hypos
     }
 
 # --- Dashboard ---
@@ -369,9 +410,13 @@ def dashboard():
             text("SELECT * FROM free_meals WHERE recorded_at LIKE :d ORDER BY recorded_at DESC"),
             {'d': f'{today}%'}
         ))
+        latest_sensor = row(conn.execute(
+            text('SELECT * FROM sensor_changes ORDER BY changed_at DESC LIMIT 1')
+        ))
     return jsonify({
         'today_novorapid': today_novo, 'today_tregludec': today_treg,
-        'last_record': last_record, 'today_free_meals': today_free, 'stats': _calc_stats()
+        'last_record': last_record, 'today_free_meals': today_free,
+        'latest_sensor': latest_sensor, 'stats': _calc_stats()
     })
 
 # --- Serve React SPA ---

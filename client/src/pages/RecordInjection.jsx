@@ -28,6 +28,7 @@ export default function RecordInjection() {
   const [tregNotes, setTregNotes] = useState('')
   const [tregDate, setTregDate] = useState(todayISO())
   const [tregSaved, setTregSaved] = useState(false)
+  const [hadHypo, setHadHypo] = useState(false)
 
   const [saving, setSaving] = useState(false)
 
@@ -66,7 +67,12 @@ export default function RecordInjection() {
   async function handleRecordTreg() {
     if (!tregDose || saving) return
     setSaving(true)
-    await recordTregludec({ dose: parseFloat(tregDose), notes: tregNotes, recorded_date: tregDate })
+    await recordTregludec({
+      dose: parseFloat(tregDose),
+      notes: tregNotes,
+      recorded_date: tregDate,
+      had_hypo_morning: hadHypo
+    })
     setTregSaved(true)
     setSaving(false)
   }
@@ -76,6 +82,7 @@ export default function RecordInjection() {
     setTregDose('')
     setTregNotes('')
     setTregDate(todayISO())
+    setHadHypo(false)
   }
 
   return (
@@ -219,6 +226,26 @@ export default function RecordInjection() {
                 className="input"
               />
             </div>
+            <label style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+              background: hadHypo ? '#FEF3C7' : 'var(--gray-50)',
+              borderRadius: 10, marginBottom: 12, cursor: 'pointer',
+              border: `1px solid ${hadHypo ? '#F59E0B' : 'var(--gray-200)'}`,
+              transition: 'all 0.15s'
+            }}>
+              <input
+                type="checkbox"
+                checked={hadHypo}
+                onChange={e => setHadHypo(e.target.checked)}
+                style={{ width: 18, height: 18, cursor: 'pointer' }}
+              />
+              <span style={{ fontSize: 14 }}>
+                ⚠️ <strong>היפוגליקמיה הבוקר</strong>
+                <span style={{ fontSize: 12, color: 'var(--gray-500)', display: 'block', marginTop: 2 }}>
+                  סוכר נמוך הבוקר לאחר מנת הטרגלודק האחרונה
+                </span>
+              </span>
+            </label>
             <button
               onClick={handleRecordTreg}
               disabled={!tregDose || saving}
