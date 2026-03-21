@@ -279,6 +279,12 @@ def delete_free_meal(record_id):
         conn.commit()
     return jsonify({'status': 'ok'})
 
+# --- Health check ---
+
+@app.route('/api/ping')
+def ping():
+    return jsonify({'ok': True})
+
 # --- Dexcom Sensor API ---
 
 @app.route('/api/sensor', methods=['POST'])
