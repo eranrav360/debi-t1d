@@ -3,7 +3,7 @@ name: Dexcom sensor WhatsApp alert
 on:
   schedule:
     - cron: '0 * * * *'   # every hour on the hour
-  workflow_dispatch:        # manual trigger — always sends (for testing)
+  workflow_dispatch:        # manual trigger - always sends (for testing)
 
 jobs:
   notify:
@@ -13,7 +13,6 @@ jobs:
       WAHA_URL:   https://waha.raviv360.com
       WAHA_KEY:   ${{ secrets.WAHA_API_KEY }}
       GROUP_ID:   ${{ secrets.WAHA_GROUP_ID }}
-      IS_MANUAL:  ${{ github.event_name == 'workflow_dispatch' }}
 
     steps:
       - name: List available WAHA chats (manual runs only)
@@ -25,98 +24,102 @@ jobs:
           echo ""
           echo "=== Available chats/groups ==="
           curl -sf "$WAHA_URL/api/chats?limit=50" \
-            -H "X-Api-Key: $WAHA_KEY" | \
-            python3 -c "
-import sys, json
-chats = json.load(sys.stdin)
-for c in chats:
-    cid = c.get('id','')
-    name = c.get('name','') or c.get('subject','')
-    kind = 'GROUP' if '@g.us' in cid else 'contact'
-    print(f'  [{kind}] {name!r:30s}  id={cid}')
-" || true
+            -H "X-Api-Key: $WAHA_KEY" > /tmp/chats.json || true
+          python3 << 'PYEOF'
+import json
+try:
+    chats = json.load(open('/tmp/chats.json'))
+    for c in chats:
+        cid  = c.get('id', '')
+        name = c.get('name', '') or c.get('subject', '')
+        kind = 'GROUP' if '@g.us' in cid else 'contact'
+        print(f'  [{kind}] {name!r:35}  id={cid}')
+except Exception as e:
+    print(f"Could not parse chats: {e}")
+PYEOF
 
       - name: Check sensor status
         id: sensor
         run: |
           STATUS=$(curl -sf "$RENDER_API/sensor/status" || echo '{"has_sensor":false}')
           echo "status=$STATUS" >> $GITHUB_OUTPUT
-          HOURS=$(echo "$STATUS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('hours_remaining','null'))")
+          HOURS=$(echo "$STATUS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('hours_remaining') or 'null')")
           echo "hours=$HOURS" >> $GITHUB_OUTPUT
           echo "Sensor status: $STATUS"
           echo "Hours remaining: $HOURS"
 
       - name: Send WhatsApp alert
-        if: steps.sensor.outputs.hours != 'null' && steps.sensor.outputs.hours != 'None'
+        if: steps.sensor.outputs.hours != 'null'
+        env:
+          HOURS:      ${{ steps.sensor.outputs.hours }}
+          STATUS_JSON: ${{ steps.sensor.outputs.status }}
+          IS_MANUAL:  ${{ github.event_name == 'workflow_dispatch' }}
         run: |
-          python3 - <<'PYEOF'
-          import sys, json, math, urllib.request, os
+          python3 << 'PYEOF'
+import sys, json, urllib.request, urllib.error, os
 
-          hours_str = "${{ steps.sensor.outputs.hours }}"
-          is_manual = "${{ env.IS_MANUAL }}" == "true"
-          status_raw = """${{ steps.sensor.outputs.status }}"""
+hours_str = os.environ.get("HOURS", "null")
+is_manual = os.environ.get("IS_MANUAL", "false") == "true"
+status_raw = os.environ.get("STATUS_JSON", "{}")
 
-          if not hours_str or hours_str == "null":
-              print("No sensor data. Skipping.")
-              sys.exit(0)
+if not hours_str or hours_str == "null":
+    print("No sensor data recorded yet. Log a sensor change in the app first.")
+    sys.exit(0)
 
-          hours = float(hours_str)
-          print(f"Hours remaining: {hours:.1f}  |  Manual run: {is_manual}")
+hours = float(hours_str)
+print(f"Hours remaining: {hours:.1f}  |  Manual run: {is_manual}")
 
-          # Scheduled: only fire in the 23-25h window to avoid duplicates
-          # Manual: always send
-          if not is_manual and not (23 <= hours <= 25):
-              print("Scheduled run: outside 23-25h window. Skipping.")
-              sys.exit(0)
+# Scheduled runs: only fire in the 23-25h window to avoid duplicate messages
+# Manual runs: always send
+if not is_manual and not (23 <= hours <= 25):
+    print("Scheduled run: outside 23-25h window. Skipping.")
+    sys.exit(0)
 
-          status = json.loads(status_raw)
-          expires = status.get("expires_at", "")
-          days_left  = int(hours // 24)
-          hours_left = int(hours % 24)
+status   = json.loads(status_raw)
+expires  = status.get("expires_at", "")
+days_left  = int(hours // 24)
+hours_left = int(hours % 24)
 
-          if is_manual:
-              # Test message shows exact time remaining
-              if hours <= 0:
-                  time_str = "החיישן פג תוקף!"
-              elif days_left > 0:
-                  time_str = f"עוד {days_left} ימים ו-{hours_left} שעות"
-              else:
-                  time_str = f"עוד {hours_left} שעות"
+if is_manual:
+    if hours <= 0:
+        time_str = "החיישן פג תוקף!"
+    elif days_left > 0:
+        time_str = f"עוד {days_left} ימים ו-{hours_left} שעות"
+    else:
+        time_str = f"עוד {hours_left} שעות"
+    msg = (
+        "📡 *בדיקת חיישן דקסקום* (הודעת בדיקה)\n\n"
+        f"זמן עד להחלפה: *{time_str}*\n"
+        f"פג תוקף: {expires}\n\n"
+        "_(התראה אמיתית תישלח 24 שעות לפני)_"
+    )
+else:
+    msg = (
+        "📡 *תזכורת החלפת חיישן דקסקום*\n\n"
+        f"עוד ~24 שעות ({expires}) צריך להחליף את החיישן של דבי.\n"
+        "יש להכין חיישן חדש מראש! 💙"
+    )
 
-              msg = (
-                  f"📡 *בדיקת חיישן דקסקום* (הודעת בדיקה)\n\n"
-                  f"זמן עד להחלפה: *{time_str}*\n"
-                  f"פג תוקף: {expires}\n\n"
-                  f"_(התראה אמיתית תישלח 24 שעות לפני)_"
-              )
-          else:
-              msg = (
-                  f"📡 *תזכורת החלפת חיישן דקסקום*\n\n"
-                  f"עוד ~24 שעות ({expires}) צריך להחליף את החיישן של דבי.\n"
-                  f"יש להכין חיישן חדש מראש! 💙"
-              )
+payload = json.dumps({
+    "chatId":  os.environ["GROUP_ID"],
+    "text":    msg,
+    "session": "default"
+}).encode()
 
-          payload = json.dumps({
-              "chatId":  os.environ["GROUP_ID"],
-              "text":    msg,
-              "session": "default"
-          }).encode()
-
-          req = urllib.request.Request(
-              f"{os.environ['WAHA_URL']}/api/sendText",
-              data=payload,
-              headers={
-                  "Content-Type": "application/json",
-                  "X-Api-Key": os.environ["WAHA_KEY"]
-              },
-              method="POST"
-          )
-          try:
-              with urllib.request.urlopen(req, timeout=15) as resp:
-                  body = resp.read().decode()
-                  print(f"WAHA response ({resp.status}): {body}")
-                  print("Message sent successfully!")
-          except urllib.error.HTTPError as e:
-              print(f"WAHA error {e.code}: {e.read().decode()}")
-              sys.exit(1)
-          PYEOF
+req = urllib.request.Request(
+    f"{os.environ['WAHA_URL']}/api/sendText",
+    data=payload,
+    headers={
+        "Content-Type": "application/json",
+        "X-Api-Key": os.environ["WAHA_KEY"]
+    },
+    method="POST"
+)
+try:
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        print(f"WAHA response ({resp.status}): {resp.read().decode()}")
+        print("Message sent successfully!")
+except urllib.error.HTTPError as e:
+    print(f"WAHA error {e.code}: {e.read().decode()}")
+    sys.exit(1)
+PYEOF
