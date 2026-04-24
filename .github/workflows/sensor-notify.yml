@@ -16,6 +16,26 @@ jobs:
       IS_MANUAL:  ${{ github.event_name == 'workflow_dispatch' }}
 
     steps:
+      - name: List available WAHA chats (manual runs only)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "=== Connected WhatsApp session ==="
+          curl -sf "$WAHA_URL/api/sessions" \
+            -H "X-Api-Key: $WAHA_KEY" | python3 -m json.tool || true
+          echo ""
+          echo "=== Available chats/groups ==="
+          curl -sf "$WAHA_URL/api/chats?limit=50" \
+            -H "X-Api-Key: $WAHA_KEY" | \
+            python3 -c "
+import sys, json
+chats = json.load(sys.stdin)
+for c in chats:
+    cid = c.get('id','')
+    name = c.get('name','') or c.get('subject','')
+    kind = 'GROUP' if '@g.us' in cid else 'contact'
+    print(f'  [{kind}] {name!r:30s}  id={cid}')
+" || true
+
       - name: Check sensor status
         id: sensor
         run: |
