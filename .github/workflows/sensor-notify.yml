@@ -9,7 +9,7 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     env:
-      RENDER_API: https://debi-t1d.onrender.com/api
+      RENDER_API: https://debi.144-24-171-177.sslip.io/api
       WAHA_URL:   https://waha.raviv360.com
       WAHA_KEY:   ${{ secrets.WAHA_API_KEY }}
       GROUP_ID:   ${{ secrets.WAHA_GROUP_ID }}
