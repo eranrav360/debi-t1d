@@ -24,18 +24,29 @@ if sessions:
     for s in (sessions if isinstance(sessions, list) else [sessions]):
         print(f"  name={s.get('name')}  status={s.get('status')}  phone={s.get('me', {}).get('id','?')}")
 
-print("\n=== Available chats/groups ===")
+print("\n=== Available chats/groups (searching for שניידר) ===")
 # Try session-namespaced path first (newer WAHA), fall back to legacy path
-chats = fetch("/api/default/chats?limit=100", silent_404=True) or fetch("/api/chats?limit=100")
+# Use a large limit to catch all chats; WAHA may also support ?filter=
+chats = fetch("/api/default/chats?limit=1000", silent_404=True) or fetch("/api/chats?limit=1000")
 if chats:
-    for c in (chats if isinstance(chats, list) else []):
+    items = chats if isinstance(chats, list) else []
+    # Print all groups, highlighting שניידר
+    for c in items:
         cid  = c.get("id", "")
         name = c.get("name", "") or c.get("subject", "") or "(no name)"
-        kind = "GROUP  " if "@g.us" in cid else "contact"
-        print(f"  [{kind}]  {name!r:35}  id={cid}")
+        if "@g.us" not in cid:
+            continue   # skip non-groups
+        kind = "GROUP"
+        marker = " <<<" if "שניידר" in name else ""
+        print(f"  [{kind}]  {name!r:40}  id={cid}{marker}")
+    # Also explicitly search
+    matches = [c for c in items if "שניידר" in (c.get("name","") or c.get("subject",""))]
+    if matches:
+        print(f"\n=== FOUND {len(matches)} match(es) for שניידר ===")
+        for c in matches:
+            print(f"  id={c.get('id')}  name={c.get('name') or c.get('subject')}")
+    else:
+        print("\n  !! No group named שניידר found in the returned list.")
+        print(f"  Total chats returned: {len(items)}")
 else:
     print("  No chats returned — check API key and session status")
-    # Debug: list available API endpoints
-    print("\n=== Debug: API root ===")
-    root = fetch("/api")
-    print(root)
