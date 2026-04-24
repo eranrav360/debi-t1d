@@ -294,6 +294,25 @@ def record_sensor_change():
         db_insert(conn, 'INSERT INTO sensor_changes (changed_at) VALUES (:at)', {'at': now})
     return jsonify({'status': 'ok', 'changed_at': now})
 
+@app.route('/api/sensor/status', methods=['GET'])
+def sensor_status():
+    """Return sensor timing info for external notification services."""
+    with get_conn() as conn:
+        latest = row(conn.execute(
+            text('SELECT * FROM sensor_changes ORDER BY changed_at DESC LIMIT 1')
+        ))
+    if not latest:
+        return jsonify({'has_sensor': False, 'hours_remaining': None, 'changed_at': None})
+    changed_at = datetime.strptime(latest['changed_at'], '%Y-%m-%d %H:%M')
+    expires_at = changed_at + __import__('datetime').timedelta(days=10)
+    hours_remaining = (expires_at - datetime.now()).total_seconds() / 3600
+    return jsonify({
+        'has_sensor': True,
+        'changed_at': latest['changed_at'],
+        'expires_at': expires_at.strftime('%Y-%m-%d %H:%M'),
+        'hours_remaining': round(hours_remaining, 1)
+    })
+
 # --- Statistics ---
 
 @app.route('/api/statistics', methods=['GET'])

@@ -1,0 +1,72 @@
+name: Dexcom sensor WhatsApp alert
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # every hour on the hour
+  workflow_dispatch:        # allow manual trigger for testing
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    env:
+      RENDER_API: https://debi-t1d.onrender.com/api
+      WAHA_URL:   https://waha.raviv360.com
+      WAHA_KEY:   ${{ secrets.WAHA_API_KEY }}
+      GROUP_ID:   ${{ secrets.WAHA_GROUP_ID }}
+
+    steps:
+      - name: Check sensor status
+        id: sensor
+        run: |
+          STATUS=$(curl -sf "$RENDER_API/sensor/status" || echo '{"has_sensor":false}')
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          HOURS=$(echo "$STATUS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('hours_remaining','null'))")
+          echo "hours=$HOURS" >> $GITHUB_OUTPUT
+          echo "Sensor status: $STATUS"
+          echo "Hours remaining: $HOURS"
+
+      - name: Send WhatsApp alert if 23–25 h remaining
+        if: steps.sensor.outputs.hours != 'null' && steps.sensor.outputs.hours != 'None'
+        run: |
+          HOURS="${{ steps.sensor.outputs.hours }}"
+          # Only fire in the 23–25 hour window (avoids duplicate messages)
+          python3 - <<'PYEOF'
+          import sys, json, urllib.request, os
+
+          hours = float("$HOURS")
+          print(f"Hours remaining: {hours:.1f}")
+
+          if not (23 <= hours <= 25):
+              print(f"Outside notification window (23-25h). Skipping.")
+              sys.exit(0)
+
+          status_raw = '${{ steps.sensor.outputs.status }}'
+          status = json.loads(status_raw)
+          expires = status.get("expires_at", "")
+
+          msg = (
+              f"📡 *תזכורת החלפת חיישן דקסקום*\n\n"
+              f"עוד ~24 שעות ({expires}) צריך להחליף את החיישן של דבי.\n"
+              f"יש להכין חיישן חדש מראש! 💙"
+          )
+
+          payload = json.dumps({
+              "chatId":  os.environ["GROUP_ID"],
+              "text":    msg,
+              "session": "default"
+          }).encode()
+
+          req = urllib.request.Request(
+              f"{os.environ['WAHA_URL']}/api/sendText",
+              data=payload,
+              headers={
+                  "Content-Type": "application/json",
+                  "X-Api-Key": os.environ["WAHA_KEY"]
+              },
+              method="POST"
+          )
+          with urllib.request.urlopen(req, timeout=15) as resp:
+              body = resp.read().decode()
+              print(f"WAHA response ({resp.status}): {body}")
+              print("Alert sent successfully!")
+          PYEOF
