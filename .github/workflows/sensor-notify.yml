@@ -3,7 +3,7 @@ name: Dexcom sensor WhatsApp alert
 on:
   schedule:
     - cron: '0 * * * *'   # every hour on the hour
-  workflow_dispatch:        # allow manual trigger for testing
+  workflow_dispatch:        # manual trigger — always sends (for testing)
 
 jobs:
   notify:
@@ -13,6 +13,7 @@ jobs:
       WAHA_URL:   https://waha.raviv360.com
       WAHA_KEY:   ${{ secrets.WAHA_API_KEY }}
       GROUP_ID:   ${{ secrets.WAHA_GROUP_ID }}
+      IS_MANUAL:  ${{ github.event_name == 'workflow_dispatch' }}
 
     steps:
       - name: Check sensor status
@@ -25,30 +26,55 @@ jobs:
           echo "Sensor status: $STATUS"
           echo "Hours remaining: $HOURS"
 
-      - name: Send WhatsApp alert if 23–25 h remaining
+      - name: Send WhatsApp alert
         if: steps.sensor.outputs.hours != 'null' && steps.sensor.outputs.hours != 'None'
         run: |
-          HOURS="${{ steps.sensor.outputs.hours }}"
-          # Only fire in the 23–25 hour window (avoids duplicate messages)
           python3 - <<'PYEOF'
-          import sys, json, urllib.request, os
+          import sys, json, math, urllib.request, os
 
-          hours = float("$HOURS")
-          print(f"Hours remaining: {hours:.1f}")
+          hours_str = "${{ steps.sensor.outputs.hours }}"
+          is_manual = "${{ env.IS_MANUAL }}" == "true"
+          status_raw = """${{ steps.sensor.outputs.status }}"""
 
-          if not (23 <= hours <= 25):
-              print(f"Outside notification window (23-25h). Skipping.")
+          if not hours_str or hours_str == "null":
+              print("No sensor data. Skipping.")
               sys.exit(0)
 
-          status_raw = '${{ steps.sensor.outputs.status }}'
+          hours = float(hours_str)
+          print(f"Hours remaining: {hours:.1f}  |  Manual run: {is_manual}")
+
+          # Scheduled: only fire in the 23-25h window to avoid duplicates
+          # Manual: always send
+          if not is_manual and not (23 <= hours <= 25):
+              print("Scheduled run: outside 23-25h window. Skipping.")
+              sys.exit(0)
+
           status = json.loads(status_raw)
           expires = status.get("expires_at", "")
+          days_left  = int(hours // 24)
+          hours_left = int(hours % 24)
 
-          msg = (
-              f"📡 *תזכורת החלפת חיישן דקסקום*\n\n"
-              f"עוד ~24 שעות ({expires}) צריך להחליף את החיישן של דבי.\n"
-              f"יש להכין חיישן חדש מראש! 💙"
-          )
+          if is_manual:
+              # Test message shows exact time remaining
+              if hours <= 0:
+                  time_str = "החיישן פג תוקף!"
+              elif days_left > 0:
+                  time_str = f"עוד {days_left} ימים ו-{hours_left} שעות"
+              else:
+                  time_str = f"עוד {hours_left} שעות"
+
+              msg = (
+                  f"📡 *בדיקת חיישן דקסקום* (הודעת בדיקה)\n\n"
+                  f"זמן עד להחלפה: *{time_str}*\n"
+                  f"פג תוקף: {expires}\n\n"
+                  f"_(התראה אמיתית תישלח 24 שעות לפני)_"
+              )
+          else:
+              msg = (
+                  f"📡 *תזכורת החלפת חיישן דקסקום*\n\n"
+                  f"עוד ~24 שעות ({expires}) צריך להחליף את החיישן של דבי.\n"
+                  f"יש להכין חיישן חדש מראש! 💙"
+              )
 
           payload = json.dumps({
               "chatId":  os.environ["GROUP_ID"],
@@ -65,8 +91,12 @@ jobs:
               },
               method="POST"
           )
-          with urllib.request.urlopen(req, timeout=15) as resp:
-              body = resp.read().decode()
-              print(f"WAHA response ({resp.status}): {body}")
-              print("Alert sent successfully!")
+          try:
+              with urllib.request.urlopen(req, timeout=15) as resp:
+                  body = resp.read().decode()
+                  print(f"WAHA response ({resp.status}): {body}")
+                  print("Message sent successfully!")
+          except urllib.error.HTTPError as e:
+              print(f"WAHA error {e.code}: {e.read().decode()}")
+              sys.exit(1)
           PYEOF
