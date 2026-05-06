@@ -40,7 +40,7 @@ module.exports = {
       cwd: '/home/ubuntu/apps/debi',
       interpreter: 'node',
       env: {
-        PORT_DEXCOM: 3008,
+        PORT_DEXCOM: 3009,
         NODE_ENV: 'production',
         DATABASE_URL: 'postgresql://neondb_owner:npg_m4LVCpBWgI6v@ep-purple-heart-agybciws-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
         CORS_ORIGINS: 'https://debi.144-24-171-177.sslip.io,https://debi-t1d.vercel.app',
