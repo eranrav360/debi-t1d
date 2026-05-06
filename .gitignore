@@ -16,6 +16,7 @@ instance/
 client/node_modules/
 client/dist/
 node_modules/
+dexcom/node_modules/
 
 # Build artifacts
 *.pyc
@@ -34,3 +35,5 @@ desktop.ini
 
 # Claude Code
 .claude/
+
+.vercel
