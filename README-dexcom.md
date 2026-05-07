@@ -162,3 +162,16 @@ Configure in `.env` or `ecosystem.config.js`:
 
 Alerts fire at most once every 15 minutes per type.
 Set `ALERT_WEBHOOK_URL` to POST alert payloads to Slack, Make, IFTTT, etc.
+
+## History backfill
+
+On startup the poller fetches up to `DEXCOM_HISTORY_MONTHS` (default **6**) of
+historical readings and stores them in `glucose_readings`.  Because the Dexcom
+Share API only exposes "the last N readings within the last M minutes" (no
+date-range cursor), the poller uses **30-day cumulative chunks**: each call
+expands the window by 30 days and inserts only the newly-reached readings.
+`ON CONFLICT DO NOTHING` makes re-runs safe.
+
+```
+DEXCOM_HISTORY_MONTHS=6   # 1–6 months (max 6)
+```

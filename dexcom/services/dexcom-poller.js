@@ -3,11 +3,12 @@
  *
  * Polls the Dexcom Share API every 5 minutes, auto-refreshes the session token
  * when it expires, and writes each new reading to the glucose_readings table.
- * On startup, backfills up to DEXCOM_HISTORY_HOURS (default 24) of history.
+ * On startup, backfills up to DEXCOM_HISTORY_MONTHS (default 6) of history
+ * using 30-day chunks to work around the Dexcom Share API's per-call window limit.
  *
  * Env vars required (see .env.example):
  *   DEXCOM_USERNAME, DEXCOM_PASSWORD, DEXCOM_SERVER (us | ous), DATABASE_URL,
- *   DEXCOM_HISTORY_HOURS (optional, default 24, max 24)
+ *   DEXCOM_HISTORY_MONTHS (optional, default 6, max 6)
  *
  * Never crashes on transient API errors — logs and retries next interval.
  */
@@ -32,11 +33,12 @@ const APP_ID = 'd89443d2-327c-4a6f-89e5-496bbb0317db';
 const BASE_URL        = SERVERS[(process.env.DEXCOM_SERVER || 'us').toLowerCase()] || SERVERS.us;
 const USERNAME        = process.env.DEXCOM_USERNAME;
 const PASSWORD        = process.env.DEXCOM_PASSWORD;
-const POLL_INTERVAL   = 5 * 60 * 1000;  // 5 minutes
-// Dexcom Share API max window is 1440 minutes / 288 readings (24 h)
-const HISTORY_HOURS   = Math.min(parseInt(process.env.DEXCOM_HISTORY_HOURS) || 24, 24);
-const HISTORY_MINUTES = HISTORY_HOURS * 60;
-const HISTORY_COUNT   = HISTORY_HOURS * 12; // 12 readings per hour (every 5 min)
+const POLL_INTERVAL    = 5 * 60 * 1000;  // 5 minutes
+// Dexcom Share API max window per call: 1440 minutes / 288 readings (24 h).
+// For deeper history we use cumulative calls — each call asks for "everything up
+// to N days back" and we slice off the part we already processed in the prior call.
+const HISTORY_MONTHS   = Math.min(parseInt(process.env.DEXCOM_HISTORY_MONTHS) || 6, 6);
+const READINGS_PER_DAY = 288; // one reading every 5 minutes
 
 const TREND_ARROW_MAP = {
   None:           '?',
@@ -192,26 +194,91 @@ async function persistReading(raw) {
 // ─── History backfill ──────────────────────────────────────────────────────────
 
 /**
- * On startup, fetch up to DEXCOM_HISTORY_HOURS of readings and insert any that
- * aren't already in the DB.  Uses ON CONFLICT DO NOTHING so re-runs are safe.
+ * On startup, backfill up to DEXCOM_HISTORY_MONTHS (default 6) of readings.
+ *
+ * The Dexcom Share API has no date-range parameter — it only exposes
+ * "the last N readings within the last M minutes."  To reach data older than
+ * 24 h we must expand both maxCount and minutes cumulatively.  We do this in
+ * 30-day chunks:
+ *
+ *   Chunk 1: ask for everything in the last 30 days  (43 200 min / 8 640 readings)
+ *   Chunk 2: ask for everything in the last 60 days  (86 400 min / 17 280 readings)
+ *   …
+ *   Chunk 6: ask for everything in the last 180 days (259 200 min / 51 840 readings)
+ *
+ * Between calls the response array grows cumulatively.  We only process the
+ * *new* tail (readings beyond what we already saw in the previous call) so each
+ * reading is inserted exactly once.  ON CONFLICT DO NOTHING makes re-runs safe.
+ *
+ * A 2-second pause between chunks keeps us polite toward the Dexcom servers.
  */
 async function backfillHistory() {
-  console.log(`[dexcom-poller] Backfilling last ${HISTORY_HOURS}h of history…`);
-  const readings = await fetchReadings(HISTORY_COUNT, HISTORY_MINUTES);
-  if (!readings.length) {
-    console.log('[dexcom-poller] No historical readings returned');
-    return;
+  const CHUNK_DAYS = 30;
+  const totalDays  = HISTORY_MONTHS * 30;
+  const totalChunks = Math.ceil(totalDays / CHUNK_DAYS);
+
+  console.log(
+    `[dexcom-poller] Backfilling last ${HISTORY_MONTHS} month(s) ` +
+    `(~${totalDays} days) in ${totalChunks} chunk(s)…`
+  );
+
+  let totalSaved = 0;
+  let prevLength = 0; // how many readings the previous chunk call returned
+
+  for (let chunk = 1; chunk <= totalChunks; chunk++) {
+    const daysBack = chunk * CHUNK_DAYS;
+    const minutes  = daysBack * 24 * 60;
+    const maxCount = daysBack * READINGS_PER_DAY;
+
+    let readings;
+    try {
+      readings = await fetchReadings(maxCount, minutes);
+    } catch (err) {
+      if (err.sessionExpired) {
+        console.warn('[dexcom-poller] Session expired during backfill — re-authenticating…');
+        await authenticate();
+        readings = await fetchReadings(maxCount, minutes);
+      } else {
+        console.error(`[dexcom-poller] Backfill chunk ${chunk} error:`, err.message);
+        break;
+      }
+    }
+
+    // The API returns newest-first.  Slice off the portion we already processed
+    // (the "front" of the array) to get only the newly-reached older readings.
+    const newSlice = readings.slice(prevLength);
+
+    if (!newSlice.length) {
+      console.log(`[dexcom-poller] No more data at ~${daysBack} days — backfill done early`);
+      break;
+    }
+
+    // Insert oldest-first (reverse the newest-first slice)
+    for (const raw of [...newSlice].reverse()) {
+      const row = await persistReading(raw);
+      if (row) totalSaved++;
+    }
+
+    console.log(
+      `[dexcom-poller] Chunk ${chunk}/${totalChunks} (~${daysBack} days): ` +
+      `${newSlice.length} fetched, ${totalSaved} total saved`
+    );
+
+    prevLength = readings.length;
+
+    // Stop early if the API returned fewer readings than the chunk window could hold
+    // (means we've hit the beginning of available data)
+    if (newSlice.length < CHUNK_DAYS * READINGS_PER_DAY * 0.1) {
+      console.log('[dexcom-poller] Sparse results — likely reached start of available data');
+      break;
+    }
+
+    if (chunk < totalChunks) {
+      await new Promise(r => setTimeout(r, 2000)); // polite pause between chunks
+    }
   }
 
-  let saved = 0;
-  // Dexcom returns newest-first; iterate oldest-first for natural insert order
-  for (const raw of readings.reverse()) {
-    const row = await persistReading(raw);
-    if (row) saved++;
-  }
-  console.log(
-    `[dexcom-poller] Backfill complete: ${saved} new / ${readings.length - saved} already stored`
-  );
+  console.log(`[dexcom-poller] Backfill complete: ${totalSaved} new readings saved`);
 }
 
 // ─── Poll ──────────────────────────────────────────────────────────────────────
