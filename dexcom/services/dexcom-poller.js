@@ -3,9 +3,11 @@
  *
  * Polls the Dexcom Share API every 5 minutes, auto-refreshes the session token
  * when it expires, and writes each new reading to the glucose_readings table.
+ * On startup, backfills up to DEXCOM_HISTORY_HOURS (default 24) of history.
  *
  * Env vars required (see .env.example):
- *   DEXCOM_USERNAME, DEXCOM_PASSWORD, DEXCOM_SERVER (us | ous), DATABASE_URL
+ *   DEXCOM_USERNAME, DEXCOM_PASSWORD, DEXCOM_SERVER (us | ous), DATABASE_URL,
+ *   DEXCOM_HISTORY_HOURS (optional, default 24, max 24)
  *
  * Never crashes on transient API errors — logs and retries next interval.
  */
@@ -31,6 +33,10 @@ const BASE_URL        = SERVERS[(process.env.DEXCOM_SERVER || 'us').toLowerCase(
 const USERNAME        = process.env.DEXCOM_USERNAME;
 const PASSWORD        = process.env.DEXCOM_PASSWORD;
 const POLL_INTERVAL   = 5 * 60 * 1000;  // 5 minutes
+// Dexcom Share API max window is 1440 minutes / 288 readings (24 h)
+const HISTORY_HOURS   = Math.min(parseInt(process.env.DEXCOM_HISTORY_HOURS) || 24, 24);
+const HISTORY_MINUTES = HISTORY_HOURS * 60;
+const HISTORY_COUNT   = HISTORY_HOURS * 12; // 12 readings per hour (every 5 min)
 
 const TREND_ARROW_MAP = {
   None:           '?',
@@ -134,10 +140,14 @@ function normalizeTrend(raw) {
   return raw || 'Unknown';
 }
 
-async function fetchLatestReading() {
+/**
+ * Fetch up to `maxCount` readings from the last `minutes` minutes.
+ * Returns them newest-first (Dexcom's natural order).
+ */
+async function fetchReadings(maxCount, minutes = 1440) {
   const url =
     `${BASE_URL}/ShareWebServices/Services/Publisher/ReadPublisherLatestGlucoseValues` +
-    `?sessionId=${sessionId}&minutes=1440&maxCount=1`;
+    `?sessionId=${sessionId}&minutes=${minutes}&maxCount=${maxCount}`;
 
   const res = await fetch(url, { headers: { Accept: 'application/json' } });
 
@@ -154,7 +164,12 @@ async function fetchLatestReading() {
   if (!res.ok) throw new Error(`ReadPublisherLatestGlucoseValues ${res.status}`);
 
   const data = await res.json();
-  return Array.isArray(data) ? data[0] : null;
+  return Array.isArray(data) ? data : [];
+}
+
+async function fetchLatestReading() {
+  const readings = await fetchReadings(1);
+  return readings[0] ?? null;
 }
 
 // ─── Persist ───────────────────────────────────────────────────────────────────
@@ -172,6 +187,31 @@ async function persistReading(raw) {
     [ts, raw.Value, trend, arrow, raw]
   );
   return rows[0] || null; // null → duplicate, already stored
+}
+
+// ─── History backfill ──────────────────────────────────────────────────────────
+
+/**
+ * On startup, fetch up to DEXCOM_HISTORY_HOURS of readings and insert any that
+ * aren't already in the DB.  Uses ON CONFLICT DO NOTHING so re-runs are safe.
+ */
+async function backfillHistory() {
+  console.log(`[dexcom-poller] Backfilling last ${HISTORY_HOURS}h of history…`);
+  const readings = await fetchReadings(HISTORY_COUNT, HISTORY_MINUTES);
+  if (!readings.length) {
+    console.log('[dexcom-poller] No historical readings returned');
+    return;
+  }
+
+  let saved = 0;
+  // Dexcom returns newest-first; iterate oldest-first for natural insert order
+  for (const raw of readings.reverse()) {
+    const row = await persistReading(raw);
+    if (row) saved++;
+  }
+  console.log(
+    `[dexcom-poller] Backfill complete: ${saved} new / ${readings.length - saved} already stored`
+  );
 }
 
 // ─── Poll ──────────────────────────────────────────────────────────────────────
@@ -219,7 +259,8 @@ async function start() {
 
   await ensureTable();
   await authenticate();
-  await poll();                        // immediate first poll
+  await backfillHistory();             // one-time catch-up on startup
+  await poll();                        // then fetch the very latest
   setInterval(poll, POLL_INTERVAL);
   console.log(`[dexcom-poller] Polling every ${POLL_INTERVAL / 60_000} minutes`);
 }
