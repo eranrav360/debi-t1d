@@ -102,7 +102,7 @@ export default function Dashboard() {
               <div style={{ marginTop: 4, fontSize: 12 }}>
                 {isConnected
                   ? <span style={{ color: '#2e7d32' }}>🟢 חי</span>
-                  : <span style={{ color: '#f57c00' }}>🟡 מצלמה</span>}
+                  : <span style={{ color: '#f57c00' }}>🟡 סריקה</span>}
               </div>
             </div>
           </>
