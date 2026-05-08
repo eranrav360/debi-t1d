@@ -97,7 +97,7 @@ export default function Dashboard() {
       <div style={{ padding: '14px var(--pad) 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div className="col" style={{ gap: 0 }}>
           <span className="muted" style={{ fontSize: 13 }}>שלום אמא 👋</span>
-          <span className="serif" style={{ fontSize: 22, fontWeight: 500 }}>היום של איתי</span>
+          <span style={{ fontSize: 22, fontWeight: 600, fontFamily: 'Rubik, sans-serif' }}>היום של תהל</span>
         </div>
         <div style={{
           width: 40, height: 40, borderRadius: 999, background: 'var(--brand-tint)',
@@ -110,7 +110,7 @@ export default function Dashboard() {
       <div style={{ flex: 1, overflow: 'auto', padding: '8px var(--pad) 130px', display: 'flex', flexDirection: 'column', gap: 'var(--gap-lg)' }}>
 
         {/* Live glucose card */}
-        <div className="card" style={{ padding: 18, position: 'relative', overflow: 'hidden' }}>
+        <div className="card" style={{ padding: 18, position: 'relative' }}>
           <div className="row-between" style={{ alignItems: 'flex-start' }}>
             <div className="col" style={{ gap: 4 }}>
               <span className="label">סוכר עכשיו</span>
