@@ -50,6 +50,9 @@ module.exports = {
         ALERT_HIGH:        180,
         ALERT_URGENT_HIGH: 250,
         // ALERT_WEBHOOK_URL: 'https://hooks.example.com/glucose-alert'
+        // WhatsApp alerts — WAHA_KEY must be in .env (not committed)
+        WAHA_URL:      'https://waha.raviv360.com',
+        WAHA_GROUP_ID: '120363321560243969@g.us',
       },
     },
   ],

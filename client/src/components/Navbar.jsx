@@ -10,6 +10,7 @@ export default function Navbar() {
       <NavLink to="/statistics" className={({ isActive }) => isActive ? 'active' : ''}>📊 סטטיסטיקה</NavLink>
       <NavLink to="/free-meal" className={({ isActive }) => isActive ? 'active' : ''}>🥗 ללא הזרקה</NavLink>
       <NavLink to="/foods" className={({ isActive }) => isActive ? 'active' : ''}>🗂️ מזונות</NavLink>
+      <NavLink to="/alerts" className={({ isActive }) => isActive ? 'active' : ''}>🔔 התראות</NavLink>
       <span className="navbar-title">💉 דבי</span>
     </nav>
   )

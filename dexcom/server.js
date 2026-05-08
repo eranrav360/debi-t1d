@@ -6,12 +6,16 @@
  * then pushes them to all connected SSE clients and runs alert checks.
  *
  * Endpoints:
- *   GET /api/glucose/latest
- *   GET /api/glucose/history?hours=24
- *   GET /api/glucose/stats?hours=24
- *   GET /api/glucose/stream          ← SSE
+ *   GET  /api/glucose/latest
+ *   GET  /api/glucose/history?hours=24
+ *   GET  /api/glucose/stats?hours=24
+ *   GET  /api/glucose/stream          ← SSE
+ *   GET  /api/glucose/rules
+ *   PUT  /api/glucose/rules/:id
+ *   POST /api/glucose/rules/:id/test
  *
- * Env vars: DATABASE_URL, PORT_DEXCOM, CORS_ORIGINS
+ * Env vars: DATABASE_URL, PORT_DEXCOM, CORS_ORIGINS,
+ *           WAHA_URL, WAHA_KEY, WAHA_GROUP_ID
  */
 
 'use strict';
@@ -34,6 +38,7 @@ app.use(cors({
 }));
 
 const db = new Pool({ connectionString: process.env.DATABASE_URL });
+alerts.init(db);
 
 // ─── DB helpers ────────────────────────────────────────────────────────────────
 
@@ -84,7 +89,7 @@ function isStale(timestamp, maxMinutes = 12) {
   return (Date.now() - new Date(timestamp).getTime()) > maxMinutes * 60_000;
 }
 
-// ─── REST endpoints ────────────────────────────────────────────────────────────
+// ─── Glucose REST endpoints ────────────────────────────────────────────────────
 
 app.get('/api/glucose/latest', async (req, res) => {
   try {
@@ -119,6 +124,50 @@ app.get('/api/glucose/stats', async (req, res) => {
   }
 });
 
+// ─── Alert rules endpoints ─────────────────────────────────────────────────────
+
+app.get('/api/glucose/rules', async (req, res) => {
+  try {
+    const rules = await alerts.getRules();
+    res.json({ rules });
+  } catch (err) {
+    console.error('[dexcom-server] GET /rules:', err.message);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
+app.put('/api/glucose/rules/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { threshold, duration_minutes, cooldown_minutes, enabled } = req.body;
+    const patch = {};
+    if (threshold           !== undefined) patch.threshold           = parseInt(threshold);
+    if (duration_minutes    !== undefined) patch.duration_minutes    = parseInt(duration_minutes);
+    if (cooldown_minutes    !== undefined) patch.cooldown_minutes    = parseInt(cooldown_minutes);
+    if (enabled             !== undefined) patch.enabled             = Boolean(enabled);
+    const rule = await alerts.updateRule(id, patch);
+    if (!rule) return res.status(404).json({ error: 'Rule not found' });
+    res.json({ rule });
+  } catch (err) {
+    console.error('[dexcom-server] PUT /rules/:id:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/glucose/rules/:id/test', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    // Use the latest real reading so the test message shows an actual value
+    const [reading] = await queryLatest(1);
+    if (!reading) return res.status(400).json({ error: 'No readings available for test' });
+    await alerts.testRule(id, reading);
+    res.json({ ok: true, message: 'Test notification sent' });
+  } catch (err) {
+    console.error('[dexcom-server] POST /rules/:id/test:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── SSE stream ────────────────────────────────────────────────────────────────
 
 const sseClients = new Set();
@@ -128,11 +177,10 @@ app.get('/api/glucose/stream', async (req, res) => {
     'Content-Type':      'text/event-stream',
     'Cache-Control':     'no-cache',
     'Connection':        'keep-alive',
-    'X-Accel-Buffering': 'no',   // disable Nginx response buffering
+    'X-Accel-Buffering': 'no',
   });
   res.flushHeaders();
 
-  // Send the latest reading immediately so the client doesn't wait up to 10 s
   try {
     const [reading] = await queryLatest(1);
     if (reading) {
@@ -140,7 +188,6 @@ app.get('/api/glucose/stream', async (req, res) => {
     }
   } catch (_) { /* non-fatal */ }
 
-  // Heartbeat every 25 s — keeps the connection alive through proxies
   const heartbeat = setInterval(() => res.write(': heartbeat\n\n'), 25_000);
 
   sseClients.add(res);
@@ -179,7 +226,8 @@ async function initLastSeen() {
 async function checkForNewReadings() {
   try {
     const { rows } = await db.query(
-      `SELECT id, timestamp, value, trend, trend_arrow AS "trendArrow", created_at AS "createdAt"
+      `SELECT id, timestamp, value, trend,
+              trend_arrow AS "trendArrow", created_at AS "createdAt"
        FROM   glucose_readings
        WHERE  id > $1
        ORDER  BY id ASC`,
@@ -188,13 +236,12 @@ async function checkForNewReadings() {
 
     for (const reading of rows) {
       lastSeenId = reading.id;
-      console.log(`[dexcom-server] New reading detected: ${reading.value} mg/dL ${reading.trendArrow}`);
-
-      // Push to all SSE clients
+      console.log(`[dexcom-server] New reading: ${reading.value} mg/dL ${reading.trendArrow}`);
       broadcast({ type: 'reading', reading, isStale: false });
-
-      // Check alert thresholds
-      alerts.check(reading);
+      // Fire-and-forget — alert errors never block the polling loop
+      alerts.check(reading).catch(err =>
+        console.error('[dexcom-server] alert check error:', err.message)
+      );
     }
   } catch (err) {
     console.error('[dexcom-server] checkForNewReadings error:', err.message);
@@ -203,10 +250,11 @@ async function checkForNewReadings() {
 
 // ─── Start ─────────────────────────────────────────────────────────────────────
 
-const PORT = parseInt(process.env.PORT_DEXCOM) || 3008;
+const PORT = parseInt(process.env.PORT_DEXCOM) || 3009;
 
 app.listen(PORT, async () => {
   console.log(`[dexcom-server] Listening on :${PORT}`);
+  await alerts.ensureTables();
   await initLastSeen();
-  setInterval(checkForNewReadings, 10_000); // poll DB every 10 s
+  setInterval(checkForNewReadings, 10_000);
 });

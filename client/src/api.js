@@ -65,3 +65,20 @@ export const updateFreeMealPostSugar = (id, postSugar) =>
   patch(`${BASE}/free-meals/${id}/post_sugar`, { post_1hr_sugar: postSugar })
 
 export const deleteFreeMeal = (id) => del(`${BASE}/free-meals/${id}`)
+
+// ── Alert rules (glucose API on /api/glucose/*) ──────────────────────────────
+
+const GLUCOSE = (import.meta.env.VITE_GLUCOSE_URL || '') + '/api/glucose'
+
+export const getAlertRules = () =>
+  fetch(`${GLUCOSE}/rules`).then(r => r.json())
+
+export const updateAlertRule = (id, patch) =>
+  fetch(`${GLUCOSE}/rules/${id}`, {
+    method:  'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(patch),
+  }).then(r => r.json()).then(d => d.rule)
+
+export const testAlertRule = (id) =>
+  fetch(`${GLUCOSE}/rules/${id}/test`, { method: 'POST' }).then(r => r.json())
