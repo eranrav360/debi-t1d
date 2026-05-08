@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getDashboard, recordSensorChange } from '../api'
 import SugarBadge from '../components/SugarBadge'
+import { useGlucose } from '../hooks/useGlucose'
 
 const SENSOR_DAYS = 10
 
@@ -30,9 +31,27 @@ function formatDate(dt) {
   return dt.slice(0, 10).split('-').reverse().join('/')
 }
 
+function glucoseColor(value) {
+  if (!value) return 'var(--gray-400)'
+  if (value < 60)  return '#d32f2f'
+  if (value < 70)  return '#f57c00'
+  if (value <= 180) return '#2e7d32'
+  if (value <= 250) return '#f57c00'
+  return '#d32f2f'
+}
+
+function minsAgo(timestamp) {
+  if (!timestamp) return null
+  const mins = Math.floor((Date.now() - new Date(timestamp).getTime()) / 60_000)
+  if (mins < 1)  return 'עכשיו'
+  if (mins === 1) return 'לפני דקה'
+  return `לפני ${mins} דקות`
+}
+
 export default function Dashboard() {
   const [data, setData] = useState(null)
   const [replacingSensor, setReplacingSensor] = useState(false)
+  const { currentReading, isStale, isConnected } = useGlucose()
 
   useEffect(() => {
     getDashboard().then(setData)
@@ -55,6 +74,42 @@ export default function Dashboard() {
   return (
     <div className="page">
       <h1 className="page-title">לוח בקרה</h1>
+
+      {/* Live glucose reading */}
+      <div className="card" style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '16px 20px', marginBottom: 12,
+        borderRight: `4px solid ${glucoseColor(currentReading?.value)}`,
+      }}>
+        {currentReading ? (
+          <>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+              <span style={{
+                fontSize: 56, fontWeight: 800, lineHeight: 1,
+                color: glucoseColor(currentReading.value),
+                opacity: isStale ? 0.5 : 1,
+              }}>
+                {currentReading.value}
+              </span>
+              <span style={{ fontSize: 28, color: glucoseColor(currentReading.value), opacity: isStale ? 0.5 : 1 }}>
+                {currentReading.trendArrow}
+              </span>
+              <span style={{ fontSize: 14, color: 'var(--gray-400)', marginBottom: 2 }}>mg/dL</span>
+            </div>
+            <div style={{ textAlign: 'left', fontSize: 13 }}>
+              <div style={{ color: 'var(--gray-500)' }}>{minsAgo(currentReading.timestamp)}</div>
+              {isStale && <div style={{ color: '#f57c00', fontWeight: 600 }}>⚠️ ישן</div>}
+              <div style={{ marginTop: 4, fontSize: 12 }}>
+                {isConnected
+                  ? <span style={{ color: '#2e7d32' }}>🟢 חי</span>
+                  : <span style={{ color: '#f57c00' }}>🟡 מצלמה</span>}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div style={{ color: 'var(--gray-400)', fontSize: 15 }}>⏳ ממתין לנתוני סוכר…</div>
+        )}
+      </div>
 
       {/* Dexcom sensor banner */}
       <div style={{

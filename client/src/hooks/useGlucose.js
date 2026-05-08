@@ -17,7 +17,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 
-const GLUCOSE_BASE = '/api/glucose'
+const GLUCOSE_BASE = (import.meta.env.VITE_API_URL || '') + '/api/glucose'
 const STALE_MINUTES = 12
 const POLL_INTERVAL_MS = 30_000   // fallback polling interval
 const SSE_RETRY_MS = 10_000       // how long to wait before re-opening SSE
