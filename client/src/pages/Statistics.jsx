@@ -1,190 +1,198 @@
 import { useEffect, useState } from 'react'
 import { getStatistics } from '../api'
+import { ScreenShell, SectionHeader } from '../components/ScreenShell'
+import { Sparkline } from '../components/Bits'
 
-function ConfidenceLabel({ level }) {
-  const map = { high: ['✓ גבוה', 'var(--success)'], medium: ['⚠ בינוני', 'var(--warning)'], low: ['ℹ נמוך', 'var(--gray-500)'] }
-  const [label, color] = map[level] || map.low
-  return <span style={{ color, fontWeight: 700, fontSize: 13 }}>{label}</span>
-}
+const RANGES = [
+  { id: '24h',  label: '24ש׳',  hours: 24   },
+  { id: '7d',   label: '7 ימים', hours: 168  },
+  { id: '30d',  label: '30 ימים', hours: 720  },
+  { id: '90d',  label: '90 ימים', hours: 2160 },
+]
+
+const GLUCOSE_BASE = (import.meta.env.VITE_API_URL || '') + '/api/glucose'
 
 export default function Statistics() {
-  const [stats, setStats] = useState(null)
+  const [stats, setStats]           = useState(null)
+  const [range, setRange]           = useState('7d')
+  const [tirStats, setTirStats]     = useState(null)
+  const [loadingTIR, setLoadingTIR] = useState(false)
 
+  // Core stats (ICR, ISF, Tregludec)
+  useEffect(() => { getStatistics().then(setStats) }, [])
+
+  // TIR stats for selected range
   useEffect(() => {
-    getStatistics().then(setStats)
-  }, [])
+    const hours = RANGES.find(r => r.id === range)?.hours || 168
+    setLoadingTIR(true)
+    fetch(`${GLUCOSE_BASE}/stats?hours=${hours}`)
+      .then(r => r.json())
+      .then(d => { setTirStats(d.stats ?? null); setLoadingTIR(false) })
+      .catch(() => setLoadingTIR(false))
+  }, [range])
 
-  if (!stats) return <div className="loading">מחשב סטטיסטיקה...</div>
+  const low     = tirStats?.lowPct  ?? 0
+  const high    = tirStats?.highPct ?? 0
+  const inRange = Math.max(0, 100 - low - high)
 
   return (
-    <div className="page">
-      <h1 className="page-title">📊 סטטיסטיקה ופרמטרים</h1>
+    <ScreenShell title="סטטיסטיקה" sub="ICR · ISF · זמן בטווח" tab="stats">
 
-      {/* Confidence banner */}
-      {stats.confidence === 'low' && (
-        <div className="alert alert-info">
-          ℹ️ עדיין מעט נתונים. ככל שתרשמי יותר, החישובים יהיו מדויקים יותר.
-          <br />נדרשים לפחות 3 רשומות עם מדידת סוכר לאחר שעה.
-        </div>
-      )}
-
-      {/* ICR */}
-      <div className="card">
-        <div className="card-title">יחס אינסולין:פחמימות (ICR)</div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ fontSize: 36, fontWeight: 800, color: stats.icr ? 'var(--primary)' : 'var(--gray-300)' }}>
-              {stats.icr ? `1:${stats.icr}` : '—'}
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--gray-500)', marginTop: 4 }}>
-              {stats.icr
-                ? `1 יחידת נובורפיד מכסה ${stats.icr}ג פחמימות`
-                : 'ברירת מחדל: 1:15 עד צבירת נתונים'}
-            </div>
-          </div>
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 4 }}>רמת ביטחון</div>
-            <ConfidenceLabel level={stats.confidence} />
-            <div style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 4 }}>
-              {stats.data_points?.icr || 0} מדידות
-            </div>
-          </div>
-        </div>
-        <div style={{ marginTop: 12, fontSize: 13, color: 'var(--gray-500)', borderTop: '1px solid var(--gray-100)', paddingTop: 10 }}>
-          <strong>כיצד מחושב:</strong> נלקחות הזרקות שבהן רמת הסוכר לפני הייתה בטווח 80–120 (ולכן המינון ניתן בעיקר לכיסוי פחמימות).
-          ICR = פחמימות ÷ מינון. מחושב החציון של כל המדידות.
-        </div>
+      {/* Range selector */}
+      <div style={{ display: 'flex', gap: 6, background: 'var(--card)', borderRadius: 999, padding: 4, boxShadow: 'var(--sh-1)' }}>
+        {RANGES.map(r => (
+          <button key={r.id} onClick={() => setRange(r.id)} style={{
+            flex: 1, border: 0, padding: '8px 10px', borderRadius: 999,
+            background: range === r.id ? 'var(--ink)' : 'transparent',
+            color: range === r.id ? '#fff' : 'var(--ink-2)',
+            fontFamily: 'inherit', fontWeight: 600, fontSize: 12, cursor: 'pointer',
+          }}>{r.label}</button>
+        ))}
       </div>
 
-      {/* ISF */}
-      <div className="card">
-        <div className="card-title">גורם רגישות לאינסולין (ISF)</div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ fontSize: 36, fontWeight: 800, color: stats.isf ? 'var(--primary)' : 'var(--gray-300)' }}>
-              {stats.isf || '—'}
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--gray-500)', marginTop: 4 }}>
-              {stats.isf
-                ? `1 יחידת נובורפיד מורידה סוכר ב-${stats.isf} mg/dL`
-                : 'ברירת מחדל: 50 עד צבירת נתונים'}
-            </div>
+      {/* Tregludec recommendation hero */}
+      {stats?.tregludec_recommendation && !stats?.hypo_warning && (
+        <div style={{
+          padding: 18, borderRadius: 24,
+          background: 'linear-gradient(160deg, #FEF1E6 0%, #F8E5D2 100%)',
+          border: '0.5px solid rgba(215,116,83,0.18)',
+        }}>
+          <div className="row" style={{ gap: 8, marginBottom: 8 }}>
+            <span className="pill pill-brand">המלצה</span>
+            <span className="muted" style={{ fontSize: 11 }}>· מבוסס מגמת בסיס</span>
           </div>
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 12, color: 'var(--gray-400)', marginBottom: 4 }}>רמת ביטחון</div>
-            <ConfidenceLabel level={stats.confidence} />
-            <div style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 4 }}>
-              {stats.data_points?.isf || 0} מדידות
-            </div>
-          </div>
-        </div>
-        <div style={{ marginTop: 12, fontSize: 13, color: 'var(--gray-500)', borderTop: '1px solid var(--gray-100)', paddingTop: 10 }}>
-          <strong>כיצד מחושב:</strong> נלקחות הזרקות ללא ארוחה (פחמימות = 0) שבהן ניתן מינון תיקון.
-          ISF = (סוכר לפני − סוכר אחרי שעה) ÷ מינון. מחושב החציון.
-        </div>
-      </div>
-
-      {/* Tregludec */}
-      <div className="card">
-        <div className="card-title">טרגלודק — אינסולין ארוך-טווח</div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--primary)' }}>
-              {stats.tregludec_current ? `${stats.tregludec_current} יח'` : '—'}
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--gray-500)', marginTop: 4 }}>מינון יומי נוכחי</div>
+          <div className="serif" style={{ fontSize: 20, lineHeight: 1.3, fontWeight: 500, marginBottom: 6 }}>
+            {stats.tregludec_recommendation}
           </div>
           {stats.fasting_avg && (
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: 12, color: 'var(--gray-400)' }}>סוכר בצום ממוצע</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: stats.fasting_avg > 130 ? 'var(--danger)' : stats.fasting_avg < 80 ? 'var(--warning)' : 'var(--success)' }}>
-                {stats.fasting_avg}
-              </div>
+            <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.55 }}>
+              סוכר בצום ממוצע: {stats.fasting_avg} mg/dL
             </div>
           )}
         </div>
+      )}
 
-        {stats.hypo_warning && (
-          <div className="alert alert-warning" style={{ marginTop: 12, marginBottom: 4 }}>
-            ⚠️ {stats.hypo_warning}
-          </div>
-        )}
-
-        {stats.tregludec_recommendation && !stats.hypo_warning && (
-          <div className={`alert ${stats.fasting_avg > 130 || stats.fasting_avg < 80 ? 'alert-warning' : 'alert-success'}`} style={{ marginTop: 12, marginBottom: 0 }}>
-            💊 {stats.tregludec_recommendation}
-          </div>
-        )}
-
-        {stats.consecutive_morning_hypos > 0 && stats.consecutive_morning_hypos < 3 && (
-          <div className="alert alert-info" style={{ marginTop: 8, marginBottom: 0, fontSize: 13 }}>
-            ℹ️ {stats.consecutive_morning_hypos} בקר/ים עם היפוגליקמיה ברצף — עקבי אחר המגמה
-          </div>
-        )}
-
-        {!stats.tregludec_current && (
-          <div className="alert alert-info" style={{ marginTop: 12, marginBottom: 0, fontSize: 13 }}>
-            רשמי את מינון הטרגלודק היומי בדף "רישום הזרקה" כדי לקבל המלצות.
-          </div>
-        )}
-
-        <div style={{ marginTop: 12, fontSize: 13, color: 'var(--gray-500)', borderTop: '1px solid var(--gray-100)', paddingTop: 10 }}>
-          <strong>כיצד מחושב:</strong> ניתח ממוצע סוכר בצום (הזרקות ללא פחמימות, 14 האחרונות).
-          סוכר בצום &gt;130 → הצעה להגדיל · סוכר בצום &lt;80 → הצעה להקטין.
-          <br />⚠️ שינויי מינון טרגלודק תמיד לאשר עם הרופא המטפל.
+      {/* Hypo warning */}
+      {stats?.hypo_warning && (
+        <div style={{ padding: '12px 14px', borderRadius: 'var(--r)', background: 'var(--cold-soft)', border: '1px solid var(--cold)', fontSize: 13, color: '#3F6584' }}>
+          ⚠️ {stats.hypo_warning}
         </div>
-      </div>
+      )}
 
-      {/* Free meal excursion */}
-      <div className="card">
-        <div className="card-title">ארוחות ללא הזרקה — תגובת גוף</div>
-        {stats.free_meal_count > 0 ? (
+      {/* Time in Range */}
+      <div className="card" style={{ padding: 16 }}>
+        <div className="row-between" style={{ marginBottom: 10 }}>
+          <span className="label">זמן בטווח</span>
+          <span className="tnum muted" style={{ fontSize: 11 }}>70–180 mg/dL</span>
+        </div>
+        {loadingTIR ? (
+          <div className="muted" style={{ textAlign: 'center', padding: '12px 0', fontSize: 13 }}>טוען...</div>
+        ) : tirStats ? (
           <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--primary)' }}>
-                  {stats.free_meal_excursion > 0 ? `+${stats.free_meal_excursion}` : stats.free_meal_excursion}
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--gray-500)', marginTop: 4 }}>
-                  שינוי סוכר ממוצע ללא אינסולין (mg/dL)
-                </div>
-              </div>
-              {stats.free_meal_excursion_per_carb != null && (
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--primary)' }}>
-                    {stats.free_meal_excursion_per_carb > 0 ? `+${stats.free_meal_excursion_per_carb}` : stats.free_meal_excursion_per_carb}
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--gray-400)' }}>mg/dL לגרם פחמ'</div>
-                </div>
+            <div className="row" style={{ alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
+              <span className="bignum tnum" style={{ fontSize: 56, color: 'var(--good)', fontWeight: 500 }}>{inRange}%</span>
+              {tirStats.readings > 0 && (
+                <span style={{ fontSize: 12, color: 'var(--ink-2)' }}>{tirStats.readings} קריאות</span>
               )}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 8 }}>
-              {stats.free_meal_count} מדידות עם סוכר לפני ואחרי שעה
+            {/* TIR bar */}
+            <div style={{ display: 'flex', height: 14, borderRadius: 999, overflow: 'hidden', gap: 2 }}>
+              {low > 0 &&     <div style={{ flex: low,     background: 'var(--cold)' }}/>}
+              {inRange > 0 && <div style={{ flex: inRange, background: 'var(--good)' }}/>}
+              {high > 0 &&    <div style={{ flex: high,    background: 'var(--warn)' }}/>}
+            </div>
+            <div className="row" style={{ marginTop: 10, gap: 14, fontSize: 11, flexWrap: 'wrap' }}>
+              <LegendDot color="var(--warn)"  label="גבוה"   v={`${high}%`}/>
+              <LegendDot color="var(--good)"  label="בטווח"  v={`${inRange}%`}/>
+              <LegendDot color="var(--cold)"  label="נמוך"   v={`${low}%`}/>
             </div>
           </>
         ) : (
-          <div className="alert alert-info" style={{ marginBottom: 0, fontSize: 13 }}>
-            עדיין אין נתונים. רשמי ארוחות ללא הזרקה עם מדידת סוכר לפני ואחרי שעה כדי לראות כאן את תגובת הגוף.
-          </div>
+          <div className="muted" style={{ fontSize: 13 }}>אין נתוני חיישן לתקופה זו</div>
         )}
-        <div style={{ marginTop: 12, fontSize: 13, color: 'var(--gray-500)', borderTop: '1px solid var(--gray-100)', paddingTop: 10 }}>
-          <strong>כיצד מחושב:</strong> ממוצע של (סוכר אחרי שעה − סוכר לפני) לכל ארוחות ללא הזרקה שיש בהן שתי מדידות.
-          מאפשר לראות כמה הסוכר עולה ללא אינסולין, ולזהות ארוחות שמשפיעות פחות או יותר.
-        </div>
       </div>
 
-      {/* Formula explanation */}
-      <div className="card">
-        <div className="card-title">נוסחת חישוב מינון</div>
-        <div style={{ background: 'var(--gray-50)', borderRadius: 8, padding: 12, fontFamily: 'monospace', fontSize: 14, direction: 'ltr', textAlign: 'left' }}>
-          <div>מינון ארוחה = פחמימות (גרם) ÷ ICR</div>
-          <div style={{ marginTop: 6 }}>מינון תיקון = max(0, (סוכר − 100) ÷ ISF)</div>
-          <div style={{ marginTop: 6, fontWeight: 700 }}>סה"כ = מינון ארוחה + מינון תיקון</div>
+      {/* ICR + ISF */}
+      {stats && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gap)' }}>
+          <ParamCard
+            label="ICR"
+            hint="יחס פחמימות"
+            value={stats.icr ? `1:${stats.icr}` : '—'}
+            sub={stats.icr ? `${stats.data_points?.icr || 0} מדידות` : 'ברירת מחדל 1:15'}
+            confidence={stats.confidence}
+          />
+          <ParamCard
+            label="ISF"
+            hint="רגישות"
+            value={stats.isf ? String(stats.isf) : '—'}
+            sub={stats.isf ? `${stats.data_points?.isf || 0} מדידות` : 'ברירת מחדל 50'}
+            confidence={stats.confidence}
+          />
         </div>
-        <div style={{ fontSize: 13, color: 'var(--gray-500)', marginTop: 10 }}>
-          יעד סוכר: <strong>100 mg/dL</strong>. ניתן לשינוי בהתייעצות עם הצוות הרפואי.
+      )}
+
+      {/* Tregludec card */}
+      {stats && (
+        <div className="card" style={{ padding: 16 }}>
+          <SectionHeader title="טרגלודק"/>
+          <div className="row" style={{ alignItems: 'baseline', gap: 8, marginTop: 10, marginBottom: 4 }}>
+            <span className="bignum tnum" style={{ fontSize: 40, color: 'var(--brand-deep)', fontWeight: 500 }}>
+              {stats.tregludec_current ? `${stats.tregludec_current}` : '—'}
+            </span>
+            {stats.tregludec_current && (
+              <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--brand-deep)' }}>יח׳ / יום</span>
+            )}
+          </div>
+          {stats.fasting_avg && (
+            <div className="muted" style={{ fontSize: 12, marginBottom: 4 }}>
+              סוכר בצום ממוצע: <strong style={{ color: stats.fasting_avg > 130 ? 'var(--warn)' : stats.fasting_avg < 80 ? 'var(--cold)' : 'var(--good)' }}>{stats.fasting_avg}</strong> mg/dL
+            </div>
+          )}
+          {!stats.tregludec_current && (
+            <div className="muted" style={{ fontSize: 12 }}>רשמי מינון טרגלודק כדי לקבל המלצות</div>
+          )}
         </div>
+      )}
+
+      {/* Free meals */}
+      {stats && stats.free_meal_count > 0 && (
+        <div className="card" style={{ padding: 16 }}>
+          <SectionHeader title="ארוחות ללא הזרקה"/>
+          <div className="row" style={{ alignItems: 'baseline', gap: 8, marginTop: 10 }}>
+            <span className="bignum tnum" style={{ fontSize: 40, color: 'var(--brand-deep)', fontWeight: 500 }}>
+              {stats.free_meal_excursion > 0 ? `+${stats.free_meal_excursion}` : stats.free_meal_excursion}
+            </span>
+            <span className="muted" style={{ fontSize: 12 }}>mg/dL ממוצע</span>
+          </div>
+          <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>{stats.free_meal_count} מדידות עם סוכר לפני ואחרי</div>
+        </div>
+      )}
+
+    </ScreenShell>
+  )
+}
+
+function LegendDot({ color, label, v }) {
+  return (
+    <div className="row" style={{ gap: 5 }}>
+      <span style={{ width: 8, height: 8, borderRadius: 999, background: color, flexShrink: 0 }}/>
+      <span style={{ color: 'var(--ink-2)' }}>{label}</span>
+      <span className="tnum" style={{ fontWeight: 700 }}>{v}</span>
+    </div>
+  )
+}
+
+function ParamCard({ label, hint, value, sub, confidence }) {
+  const confColor = confidence === 'high' ? 'var(--good)' : confidence === 'medium' ? 'var(--warn)' : 'var(--ink-4)'
+  return (
+    <div className="card" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className="col" style={{ gap: 1 }}>
+        <span className="label">{label}</span>
+        <span className="muted" style={{ fontSize: 11 }}>{hint}</span>
       </div>
+      <div className="bignum tnum" style={{ fontSize: 32, fontWeight: 500, color: 'var(--ink)' }}>{value}</div>
+      <span style={{ fontSize: 11, color: confColor }}>{sub}</span>
     </div>
   )
 }

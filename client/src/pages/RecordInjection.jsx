@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { recordNovorapid, recordTregludec, updatePostSugar } from '../api'
+import { ScreenShell } from '../components/ScreenShell'
 
 function nowLocal() {
   const d = new Date()
@@ -86,8 +87,7 @@ export default function RecordInjection() {
   }
 
   return (
-    <div className="page">
-      <h1 className="page-title">💉 רישום הזרקה</h1>
+    <ScreenShell title="רישום הזרקה" tab="more">
 
       <div className="card">
         <div className="toggle-group" style={{ marginBottom: 16 }}>
@@ -263,6 +263,6 @@ export default function RecordInjection() {
           </>
         )}
       </div>
-    </div>
+    </ScreenShell>
   )
 }

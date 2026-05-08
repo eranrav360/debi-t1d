@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { recordFreeMeal, updateFreeMealPostSugar } from '../api'
 import SugarBadge from '../components/SugarBadge'
+import { ScreenShell } from '../components/ScreenShell'
 
 function nowLocal() {
   const d = new Date()
@@ -48,8 +49,7 @@ export default function FreeMeal() {
   }
 
   return (
-    <div className="page">
-      <h1 className="page-title">🥗 ארוחה ללא הזרקה</h1>
+    <ScreenShell title="ארוחה ללא הזרקה" tab="more">
 
       {saved && !postUpdated && (
         <div className="card" style={{ borderColor: 'var(--success)', borderWidth: 2 }}>
@@ -151,6 +151,6 @@ export default function FreeMeal() {
         ℹ️ רשמי כאן ארוחות שבהן <strong>לא הזרקת אינסולין</strong> — למשל ארוחות דלות פחמימות.
         מדידת הסוכר לפני ואחרי שעה תאפשר להבין את תגובת הגוף ללא אינסולין.
       </div>
-    </div>
+    </ScreenShell>
   )
 }

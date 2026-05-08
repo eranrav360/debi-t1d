@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { getFoods, addFood, deleteFood } from '../api'
+import { ScreenShell } from '../components/ScreenShell'
 
 export default function FoodDatabase() {
   const [foods, setFoods] = useState([])
@@ -53,8 +54,7 @@ export default function FoodDatabase() {
   }
 
   return (
-    <div className="page">
-      <h1 className="page-title">🥗 מסד נתוני מזונות</h1>
+    <ScreenShell title="מאגר מזון" tab="more">
 
       <div className="card">
         <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
@@ -156,6 +156,6 @@ export default function FoodDatabase() {
           </tbody>
         </table>
       </div>
-    </div>
+    </ScreenShell>
   )
 }
