@@ -76,7 +76,15 @@ async function queryStats(hours) {
        ROUND(
          100.0 * SUM(CASE WHEN value BETWEEN 70 AND 180 THEN 1 ELSE 0 END)
                / NULLIF(COUNT(*), 0)
-       )::int                  AS "timeInRangePct"
+       )::int                  AS "timeInRangePct",
+       ROUND(
+         100.0 * SUM(CASE WHEN value < 70 THEN 1 ELSE 0 END)
+               / NULLIF(COUNT(*), 0)
+       )::int                  AS "lowPct",
+       ROUND(
+         100.0 * SUM(CASE WHEN value > 180 THEN 1 ELSE 0 END)
+               / NULLIF(COUNT(*), 0)
+       )::int                  AS "highPct"
      FROM glucose_readings
      WHERE timestamp >= NOW() - ($1 || ' hours')::interval`,
     [hours]

@@ -51,7 +51,7 @@ function minsAgo(timestamp) {
 export default function Dashboard() {
   const [data, setData] = useState(null)
   const [replacingSensor, setReplacingSensor] = useState(false)
-  const { currentReading, isStale, isConnected } = useGlucose()
+  const { currentReading, isStale, isConnected, stats } = useGlucose()
 
   useEffect(() => {
     getDashboard().then(setData)
@@ -110,6 +110,28 @@ export default function Dashboard() {
           <div style={{ color: 'var(--gray-400)', fontSize: 15 }}>⏳ ממתין לנתוני סוכר…</div>
         )}
       </div>
+
+      {/* 24h time-in-range bar */}
+      {stats && stats.readings > 0 && (() => {
+        const low  = stats.lowPct  ?? 0
+        const high = stats.highPct ?? 0
+        const inRange = Math.max(0, 100 - low - high)
+        return (
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 22 }}>
+              <div title={`נמוך ${low}%`} style={{ width: `${low}%`, background: '#d32f2f', minWidth: low > 0 ? 2 : 0 }} />
+              <div title={`בטווח ${inRange}%`} style={{ width: `${inRange}%`, background: '#2e7d32' }} />
+              <div title={`גבוה ${high}%`} style={{ width: `${high}%`, background: '#f57c00', minWidth: high > 0 ? 2 : 0 }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 12, color: 'var(--gray-500)' }}>
+              <span style={{ color: '#d32f2f' }}>🔴 נמוך {low}%</span>
+              <span style={{ color: 'var(--gray-400)' }}>24 שעות אחרונות</span>
+              <span style={{ color: '#2e7d32' }}>🟢 בטווח {inRange}%</span>
+              <span style={{ color: '#f57c00' }}>🟠 גבוה {high}%</span>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Dexcom sensor banner */}
       <div style={{
