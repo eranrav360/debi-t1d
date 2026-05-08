@@ -51,7 +51,7 @@ function minsAgo(timestamp) {
 export default function Dashboard() {
   const [data, setData] = useState(null)
   const [replacingSensor, setReplacingSensor] = useState(false)
-  const { currentReading, isStale, isConnected, stats } = useGlucose()
+  const { currentReading, isStale, isConnected, stats: glucoseStats } = useGlucose()
 
   useEffect(() => {
     getDashboard().then(setData)
@@ -112,9 +112,9 @@ export default function Dashboard() {
       </div>
 
       {/* 24h time-in-range bar */}
-      {stats && stats.readings > 0 && (() => {
-        const low  = stats.lowPct  ?? 0
-        const high = stats.highPct ?? 0
+      {glucoseStats && glucoseStats.readings > 0 && (() => {
+        const low  = glucoseStats.lowPct  ?? 0
+        const high = glucoseStats.highPct ?? 0
         const inRange = Math.max(0, 100 - low - high)
         return (
           <div style={{ marginBottom: 12 }}>
