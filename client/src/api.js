@@ -68,7 +68,7 @@ export const deleteFreeMeal = (id) => del(`${BASE}/free-meals/${id}`)
 
 // ── Alert rules (glucose API on /api/glucose/*) ──────────────────────────────
 
-const GLUCOSE = (import.meta.env.VITE_GLUCOSE_URL || '') + '/api/glucose'
+const GLUCOSE = (import.meta.env.VITE_API_URL || '') + '/api/glucose'
 
 export const getAlertRules = () =>
   fetch(`${GLUCOSE}/rules`).then(r => r.json())

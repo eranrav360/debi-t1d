@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { getAlertRules, updateAlertRule, testAlertRule } from '../api'
 
-const GLUCOSE_BASE = import.meta.env.VITE_GLUCOSE_URL || '/api/glucose'
+const GLUCOSE_BASE = (import.meta.env.VITE_API_URL || '') + '/api/glucose'
 
 function timeAgo(iso) {
   if (!iso) return null
