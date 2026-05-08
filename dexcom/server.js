@@ -197,7 +197,7 @@ app.post('/api/glucose/chat', async (req, res) => {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'grok-3-mini',
+        model: 'grok-3-mini-fast',
         messages: [
           {
             role: 'system',
