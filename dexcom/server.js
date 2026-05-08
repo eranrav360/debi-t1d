@@ -176,6 +176,60 @@ app.post('/api/glucose/rules/:id/test', async (req, res) => {
   }
 });
 
+// ─── Debi AI chat (Grok) ──────────────────────────────────────────────────────
+
+app.post('/api/glucose/chat', async (req, res) => {
+  const { message } = req.body || {};
+  if (!message || !String(message).trim()) {
+    return res.status(400).json({ error: 'message required' });
+  }
+
+  const apiKey = process.env.GROK_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'GROK_API_KEY not configured on server' });
+  }
+
+  try {
+    const grokRes = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'grok-3-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `אתה דבי — עוזרת ניהול סוכרת ידידותית עבור תהל, ילדה עם סוכרת סוג 1.
+אמא שואלת אותך שאלות על ניהול האינסולין והתזונה של תהל.
+ענה תמיד בעברית, בצורה תמציתית (1–3 משפטים בלבד).
+התמחותך: ערכי פחמימות במזונות (בגרמים), מינון אינסולין, ניהול רמת סוכר.
+לשאלות על פחמימות — ציין ישירות את הגרמים, למשל: "המבורגר 220 גרם מכיל כ-30 גרם פחמימות (לחמניה + בשר ללא רטבים)".
+היי ישירה ומעשית — ללא הסתייגויות רפואיות ארוכות.`,
+          },
+          { role: 'user', content: String(message).trim() },
+        ],
+        max_tokens: 250,
+        temperature: 0.3,
+      }),
+    });
+
+    if (!grokRes.ok) {
+      const detail = await grokRes.text();
+      console.error('[dexcom-server] Grok API error:', grokRes.status, detail);
+      return res.status(502).json({ error: 'Grok API error', status: grokRes.status });
+    }
+
+    const data = await grokRes.json();
+    const reply = data.choices?.[0]?.message?.content?.trim() || 'לא הצלחתי לענות';
+    res.json({ reply });
+  } catch (err) {
+    console.error('[dexcom-server] /chat error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── SSE stream ────────────────────────────────────────────────────────────────
 
 const sseClients = new Set();

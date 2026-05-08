@@ -53,6 +53,7 @@ module.exports = {
         // WhatsApp alerts — WAHA_KEY must be in .env (not committed)
         WAHA_URL:      'https://waha.raviv360.com',
         WAHA_GROUP_ID: '120363321560243969@g.us',
+        // Grok AI chat — GROK_API_KEY must be in .env (not committed)
       },
     },
   ],

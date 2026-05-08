@@ -1,7 +1,8 @@
 // Bits.jsx — shared visual atoms: GL, Sparkline, GlucoseReadout, SensorPie, TabBar, AskDebi
-import React from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconHome, IconHistory, IconPlus, IconStats, IconMore, IconArrow, IconSparkle, IconMic } from './Icons'
+import { askDebi as apiAskDebi } from '../api'
 
 // ── Glucose classifier ──────────────────────────────────────────────────────
 export const GL = {
@@ -145,20 +146,97 @@ export function TabBar({ active }) {
 
 // ── Ask Debi bar ────────────────────────────────────────────────────────────
 export function AskDebi({ inset = false }) {
+  const [msg,     setMsg]     = useState('')
+  const [reply,   setReply]   = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  async function send() {
+    const q = msg.trim()
+    if (!q || loading) return
+    setReply(null)
+    setLoading(true)
+    setMsg('')
+    try {
+      const data = await apiAskDebi(q)
+      setReply(data.reply || 'לא הצלחתי לענות')
+    } catch {
+      setReply('שגיאה בחיבור לשרת')
+    }
+    setLoading(false)
+  }
+
   return (
-    <div className="ask" style={{
-      background: inset ? 'var(--card-alt)' : 'var(--card)',
-      boxShadow: inset ? 'none' : 'var(--sh-2)',
-      border: inset ? '1px solid var(--hair)' : '0.5px solid var(--hair)',
-    }}>
-      <div style={{
-        width: 28, height: 28, borderRadius: 999, background: 'var(--brand-tint)',
-        color: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+
+      {/* Reply / loading bubble */}
+      {(loading || reply) && (
+        <div style={{
+          background: 'var(--card)', borderRadius: 18,
+          padding: '12px 40px 12px 14px',
+          boxShadow: 'var(--sh-2)', border: '0.5px solid var(--hair)',
+          position: 'relative',
+        }}>
+          {/* Debi label */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+            <div style={{
+              width: 20, height: 20, borderRadius: 999, background: 'var(--brand-tint)',
+              color: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <IconSparkle size={12} stroke={1.8}/>
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-deep)' }}>דבי</span>
+          </div>
+
+          {loading
+            ? <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>חושבת…</span>
+            : <span style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--ink)' }}>{reply}</span>
+          }
+
+          {/* Dismiss */}
+          {!loading && (
+            <button onClick={() => setReply(null)} style={{
+              position: 'absolute', top: 8, left: 10,
+              border: 0, background: 'transparent', color: 'var(--ink-3)',
+              fontSize: 15, cursor: 'pointer', padding: '2px 5px', lineHeight: 1,
+            }}>✕</button>
+          )}
+        </div>
+      )}
+
+      {/* Input bar */}
+      <div className="ask" style={{
+        background: inset ? 'var(--card-alt)' : 'var(--card)',
+        boxShadow: inset ? 'none' : 'var(--sh-2)',
+        border: inset ? '1px solid var(--hair)' : '0.5px solid var(--hair)',
       }}>
-        <IconSparkle size={16} stroke={1.8}/>
+        <div style={{
+          width: 28, height: 28, borderRadius: 999, background: 'var(--brand-tint)',
+          color: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <IconSparkle size={16} stroke={1.8}/>
+        </div>
+        <input
+          value={msg}
+          onChange={e => setMsg(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && send()}
+          placeholder="שאל את דבי…"
+          disabled={loading}
+        />
+        <div
+          onClick={send}
+          style={{
+            color: msg.trim() && !loading ? 'var(--brand)' : 'var(--ink-3)',
+            flexShrink: 0,
+            cursor: msg.trim() && !loading ? 'pointer' : 'default',
+          }}
+        >
+          {msg.trim()
+            ? <IconArrow dir="up" size={18} stroke={2.2}/>
+            : <IconMic size={18} stroke={1.6}/>
+          }
+        </div>
       </div>
-      <input placeholder="שאל את דבי…" readOnly/>
-      <div style={{ color: 'var(--ink-3)', flexShrink: 0 }}><IconMic size={18} stroke={1.6}/></div>
+
     </div>
   )
 }
