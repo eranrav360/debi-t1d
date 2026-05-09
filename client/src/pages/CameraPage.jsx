@@ -13,7 +13,7 @@ function nowLocal() {
 
 // Resize + compress to JPEG base64 (strips "data:…base64," prefix)
 function compressImage(file, maxPx = 1024, quality = 0.82) {
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     const img = new Image()
     img.onload = () => {
       let { width, height } = img
@@ -28,6 +28,7 @@ function compressImage(file, maxPx = 1024, quality = 0.82) {
       URL.revokeObjectURL(img.src)
       resolve(b64)
     }
+    img.onerror = () => { URL.revokeObjectURL(img.src); reject(new Error('Image load failed')) }
     img.src = URL.createObjectURL(file)
   })
 }
@@ -39,24 +40,41 @@ export default function CameraPage() {
   const navigate = useNavigate()
   const fileRef  = useRef(null)
 
-  const [step,      setStep]      = useState(1)
-  const [imageUrl,  setImageUrl]  = useState(null)   // object URL for <img>
-  const [imageB64,  setImageB64]  = useState(null)   // base64 for API
-  const [analyzing, setAnalyzing] = useState(false)
-  const [analysis,  setAnalysis]  = useState(null)   // { foods, carbs, confidence, note }
-  const [presugar,  setPresugar]  = useState(0)
-  const [rec,       setRec]       = useState(null)
-  const [doseGiven, setDoseGiven] = useState(0)
-  const [saving,    setSaving]    = useState(false)
+  const [step,        setStep]        = useState(1)
+  const [imageUrl,    setImageUrl]    = useState(null)   // object URL for <img>
+  const [imageB64,    setImageB64]    = useState(null)   // base64 for API
+  const [compressing, setCompressing] = useState(false)  // compression in progress
+  const [inputKey,    setInputKey]    = useState(0)      // changing key forces fresh <input>
+  const [analyzing,   setAnalyzing]   = useState(false)
+  const [analysis,    setAnalysis]    = useState(null)   // { foods, carbs, confidence, note }
+  const [presugar,    setPresugar]    = useState(0)
+  const [rec,         setRec]         = useState(null)
+  const [doseGiven,   setDoseGiven]   = useState(0)
+  const [saving,      setSaving]      = useState(false)
 
   async function handleCapture(e) {
     const file = e.target.files?.[0]
     if (!file) return
+
+    // Increment key → next render creates a brand-new <input> with no cached value
+    setInputKey(k => k + 1)
+
     if (imageUrl) URL.revokeObjectURL(imageUrl)
     setImageUrl(URL.createObjectURL(file))
-    setImageB64(await compressImage(file))
+    setImageB64(null)       // clear old base64 immediately
     setAnalysis(null)
     setRec(null)
+
+    // Compress async — guard with compressing flag so analyze() can't fire early
+    setCompressing(true)
+    try {
+      const b64 = await compressImage(file)
+      setImageB64(b64)
+    } catch {
+      setImageUrl(null)     // compression failed — reset preview
+    } finally {
+      setCompressing(false)
+    }
   }
 
   async function analyze() {
@@ -172,8 +190,9 @@ export default function CameraPage() {
             )}
           </div>
 
-          {/* Hidden file input */}
+          {/* Hidden file input — key changes on every capture to prevent browser file caching */}
           <input
+            key={inputKey}
             ref={fileRef}
             type="file"
             accept="image/*"
@@ -317,13 +336,18 @@ export default function CameraPage() {
 
       {/* Sticky CTA */}
       <div style={{ position: 'absolute', bottom: 96, left: 16, right: 16, zIndex: 5 }}>
-        {step === 1 && !imageUrl && (
+        {step === 1 && !imageUrl && !compressing && (
           <button className="btn btn-brand" style={{ width: '100%', padding: 16, fontSize: 16 }}
                   onClick={() => fileRef.current?.click()}>
             <IconCamera size={20} stroke={2}/> פתח מצלמה
           </button>
         )}
-        {step === 1 && imageUrl && !analyzing && (
+        {step === 1 && compressing && (
+          <button className="btn btn-brand" style={{ width: '100%', padding: 16, fontSize: 16 }} disabled>
+            ⏳ מכין תמונה…
+          </button>
+        )}
+        {step === 1 && imageUrl && !compressing && !analyzing && (
           <button className="btn btn-brand" style={{ width: '100%', padding: 16, fontSize: 16 }}
                   onClick={analyze}>
             ✨ נתח פחמימות
