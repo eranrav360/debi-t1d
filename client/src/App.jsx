@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Dashboard        from './pages/Dashboard'
 import NewMeal          from './pages/NewMeal'
+import CameraPage       from './pages/CameraPage'
 import RecordInjection  from './pages/RecordInjection'
 import History          from './pages/History'
 import Statistics       from './pages/Statistics'
@@ -15,6 +16,7 @@ export default function App() {
       <Routes>
         <Route path="/"           element={<Dashboard />} />
         <Route path="/meal"       element={<NewMeal />} />
+        <Route path="/camera"     element={<CameraPage />} />
         <Route path="/injection"  element={<RecordInjection />} />
         <Route path="/free-meal"  element={<FreeMeal />} />
         <Route path="/history"    element={<History />} />

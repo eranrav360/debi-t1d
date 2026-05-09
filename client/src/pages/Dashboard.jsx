@@ -176,7 +176,7 @@ export default function Dashboard() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--gap)' }}>
           <QuickTile icon={IconMeal}    label="ארוחה"   sub="חישוב מנה"         tint="var(--brand-tint)"  color="var(--brand)"   onClick={() => navigate('/meal')} />
           <QuickTile icon={IconSyringe} label="הזרקה"   sub="נובו / טרגלודק"   tint="var(--good-soft)"  color="var(--good)"    onClick={() => navigate('/injection')} />
-          <QuickTile icon={IconCamera}  label="צילום"   sub="זיהוי פחמימות"    tint="#F2EBDD"           color="var(--ink-3)"   beta />
+          <QuickTile icon={IconCamera}  label="צילום"   sub="זיהוי פחמימות"    tint="#F2EBDD"           color="var(--ink-3)"   onClick={() => navigate('/camera')} />
         </div>
 
         {/* Tregludec warning */}

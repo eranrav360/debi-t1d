@@ -176,6 +176,81 @@ app.post('/api/glucose/rules/:id/test', async (req, res) => {
   }
 });
 
+// ─── Food vision — analyse dish photo and estimate carbs ──────────────────────
+
+app.post('/api/glucose/vision', async (req, res) => {
+  const { image, mimeType = 'image/jpeg' } = req.body || {};
+  if (!image) return res.status(400).json({ error: 'image (base64) required' });
+
+  const apiKey = process.env.GROK_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'GROK_API_KEY not configured' });
+
+  const dataUrl = `data:${mimeType};base64,${image}`;
+
+  try {
+    const grokRes = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'grok-2-vision-1212',
+        messages: [
+          {
+            role: 'system',
+            content: `אתה מומחה תזונה מיומן בניהול סוכרת סוג 1.
+נתח תמונת מנה והחזר JSON בלבד (ללא markdown, ללא טקסט נוסף) בפורמט הזה:
+{"foods":["שם מזון"],"carbs":NUMBER,"confidence":"high|medium|low","note":"הערה אופציונלית"}
+- foods: רשימת רכיבי המנה בעברית
+- carbs: סך הפחמימות בגרמים לכל המנה (מספר שלם)
+- confidence: high=ניתן לזהות בבירור, medium=הערכה סבירה, low=קשה לזהות
+- note: הערה קצרה אם יש אי-ודאות גבוהה (אופציונלי, השמט אם אין)`,
+          },
+          {
+            role: 'user',
+            content: [
+              { type: 'image_url', image_url: { url: dataUrl } },
+              { type: 'text', text: 'אמוד את כמות הפחמימות במנה זו.' },
+            ],
+          },
+        ],
+        max_tokens: 300,
+        temperature: 0.2,
+      }),
+    });
+
+    if (!grokRes.ok) {
+      const detail = await grokRes.text();
+      console.error('[dexcom-server] Vision API error:', grokRes.status, detail);
+      return res.status(502).json({ error: 'Vision API error', status: grokRes.status });
+    }
+
+    const data = await grokRes.json();
+    const raw  = data.choices?.[0]?.message?.content?.trim() || '{}';
+
+    // Strip markdown code fences if present
+    const json = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    let parsed;
+    try {
+      parsed = JSON.parse(json);
+    } catch {
+      console.error('[dexcom-server] Vision JSON parse error, raw:', raw);
+      parsed = { foods: [], carbs: 0, confidence: 'low', note: 'לא הצלחתי לנתח את התמונה' };
+    }
+
+    res.json({
+      foods:      Array.isArray(parsed.foods) ? parsed.foods : [],
+      carbs:      typeof parsed.carbs === 'number' ? Math.round(parsed.carbs) : 0,
+      confidence: parsed.confidence || 'medium',
+      note:       parsed.note || null,
+    });
+  } catch (err) {
+    console.error('[dexcom-server] /vision error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Debi AI chat (Grok) ──────────────────────────────────────────────────────
 
 app.post('/api/glucose/chat', async (req, res) => {
