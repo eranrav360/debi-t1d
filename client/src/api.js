@@ -85,3 +85,11 @@ export const testAlertRule = (id) =>
 
 export const askDebi    = (message, context) => post(`${GLUCOSE}/chat`, { message, context })
 export const analyzeFood = (image)   => post(`${GLUCOSE}/vision`, { image, mimeType: 'image/jpeg' })
+
+// ── Patient settings (ICR / ISF overrides) ───────────────────────────────────
+export const getSettings    = ()     => fetch(`${BASE}/settings`).then(r => r.json())
+export const updateSettings = (data) => fetch(`${BASE}/settings`, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(data),
+}).then(r => r.json())

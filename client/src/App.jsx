@@ -9,6 +9,7 @@ import FoodDatabase     from './pages/FoodDatabase'
 import FreeMeal         from './pages/FreeMeal'
 import AlertAdmin       from './pages/AlertAdmin'
 import More             from './pages/More'
+import SettingsPage     from './pages/SettingsPage'
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/foods"      element={<FoodDatabase />} />
         <Route path="/alerts"     element={<AlertAdmin />} />
         <Route path="/more"       element={<More />} />
+        <Route path="/settings"   element={<SettingsPage />} />
       </Routes>
     </BrowserRouter>
   )

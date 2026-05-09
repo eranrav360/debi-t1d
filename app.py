@@ -77,6 +77,11 @@ def init_db():
             post_1hr_sugar INTEGER, notes TEXT DEFAULT \'\')''',
         '''CREATE TABLE IF NOT EXISTS sensor_changes (
             id {PK}, changed_at TEXT NOT NULL)''',
+        '''CREATE TABLE IF NOT EXISTS settings (
+            id INTEGER PRIMARY KEY,
+            icr_override REAL,
+            isf_override REAL,
+            updated_at TEXT)''',
     ]
     with get_conn() as conn:
         for ddl in ddl_templates:
@@ -142,8 +147,8 @@ def recommend():
     total_carbs = float(d.get('total_carbs', 0))
     pre_sugar = float(d.get('pre_sugar', 100))
     s = _calc_stats()
-    icr = s['icr'] or 15.0
-    isf = s['isf'] or 50.0
+    icr = s['icr_effective']
+    isf = s['isf_effective']
     meal_dose = total_carbs / icr if total_carbs > 0 else 0.0
     correction = max(0.0, (pre_sugar - 100.0) / isf)
     return jsonify({
@@ -313,6 +318,102 @@ def sensor_status():
         'hours_remaining': round(hours_remaining, 1)
     })
 
+# --- Settings API (ICR / ISF overrides) ---
+
+@app.route('/api/settings', methods=['GET'])
+def get_settings_api():
+    return jsonify(_get_settings())
+
+@app.route('/api/settings', methods=['PUT'])
+def put_settings():
+    d = request.json or {}
+    icr = float(d['icr_override']) if d.get('icr_override') not in (None, '', 0) else None
+    isf = float(d['isf_override']) if d.get('isf_override') not in (None, '', 0) else None
+    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+    with get_conn() as conn:
+        if IS_PG:
+            conn.execute(text('''
+                INSERT INTO settings (id, icr_override, isf_override, updated_at)
+                VALUES (1, :icr, :isf, :now)
+                ON CONFLICT (id) DO UPDATE
+                    SET icr_override=:icr, isf_override=:isf, updated_at=:now
+            '''), {'icr': icr, 'isf': isf, 'now': now})
+        else:
+            conn.execute(text('''
+                INSERT OR REPLACE INTO settings (id, icr_override, isf_override, updated_at)
+                VALUES (1, :icr, :isf, :now)
+            '''), {'icr': icr, 'isf': isf, 'now': now})
+        conn.commit()
+    return jsonify({'status': 'ok', 'icr_override': icr, 'isf_override': isf})
+
+def _get_settings():
+    try:
+        with get_conn() as conn:
+            r = row(conn.execute(text('SELECT icr_override, isf_override FROM settings WHERE id=1')))
+            if r:
+                return {'icr_override': r['icr_override'], 'isf_override': r['isf_override']}
+    except Exception:
+        pass
+    return {'icr_override': None, 'isf_override': None}
+
+def _icr_isf_suggestions(records, current_icr, current_isf):
+    """Analyse post-meal outcomes and suggest ICR / ISF adjustments."""
+    icr_suggestion = None
+    isf_suggestion = None
+
+    # ── ICR: look at meal records (carbs > 5g) with 1-hr post reading ──────────
+    meal_post = [r for r in records
+                 if (r.get('total_carbs') or 0) > 5
+                 and r.get('pre_sugar') and r.get('post_1hr_sugar')
+                 and r.get('dose_given', 0) > 0]
+
+    if len(meal_post) >= 5 and current_icr:
+        recent = meal_post[-20:]
+        posts  = [r['post_1hr_sugar'] for r in recent]
+        n      = len(posts)
+        pct_high = sum(1 for p in posts if p > 180) / n * 100
+        pct_low  = sum(1 for p in posts if p < 70)  / n * 100
+
+        if pct_high > 40:
+            suggested = round(max(current_icr - 2, 5), 1)
+            icr_suggestion = {
+                'direction': 'decrease', 'current': current_icr, 'suggested': suggested,
+                'text': f'ב-{int(pct_high)}% מהארוחות הסוכר מעל 180 — שקולי להוריד ICR ל-1:{int(suggested)}'
+            }
+        elif pct_low > 25:
+            suggested = round(min(current_icr + 2, 30), 1)
+            icr_suggestion = {
+                'direction': 'increase', 'current': current_icr, 'suggested': suggested,
+                'text': f'ב-{int(pct_low)}% מהארוחות הסוכר מתחת 70 — שקולי להעלות ICR ל-1:{int(suggested)}'
+            }
+
+    # ── ISF: correction-only injections (carbs < 5g, pre > 150) ───────────────
+    corr_post = [r for r in records
+                 if (r.get('total_carbs') or 0) < 5
+                 and (r.get('pre_sugar') or 0) > 150
+                 and r.get('post_1hr_sugar') and r.get('dose_given', 0) > 0]
+
+    if len(corr_post) >= 4 and current_isf:
+        drops = [(r['pre_sugar'] - r['post_1hr_sugar']) / r['dose_given']
+                 for r in corr_post[-15:] if r['pre_sugar'] > r['post_1hr_sugar']]
+        if len(drops) >= 3:
+            avg_drop = statistics.mean(drops)
+            ratio    = avg_drop / current_isf
+            if ratio < 0.7:
+                suggested = round(current_isf * 0.85)
+                isf_suggestion = {
+                    'direction': 'decrease', 'current': current_isf, 'suggested': suggested,
+                    'text': f'ירידה ממוצעת {round(avg_drop)} mg/dL ליחידה (ציפייה: {int(current_isf)}) — שקולי להוריד ISF ל-{int(suggested)}'
+                }
+            elif ratio > 1.35:
+                suggested = round(current_isf * 1.15)
+                isf_suggestion = {
+                    'direction': 'increase', 'current': current_isf, 'suggested': suggested,
+                    'text': f'ירידה ממוצעת {round(avg_drop)} mg/dL ליחידה (ציפייה: {int(current_isf)}) — שקולי להעלות ISF ל-{int(suggested)}'
+                }
+
+    return icr_suggestion, isf_suggestion
+
 # --- Statistics ---
 
 @app.route('/api/statistics', methods=['GET'])
@@ -403,8 +504,23 @@ def _calc_stats():
         hypo_warning = f"3 בקרים ברציפות עם היפוגליקמיה — שקולי להקטין מינון ל-{max(1, int(current_tregludec) - 1)} יחידות"
 
     confidence = 'high' if len(icr_values) >= 10 else 'medium' if len(icr_values) >= 3 else 'low'
+
+    # Load manual overrides and compute effective values
+    settings = _get_settings()
+    icr_override = settings['icr_override']
+    isf_override = settings['isf_override']
+    icr_effective = icr_override if icr_override else (icr or 15.0)
+    isf_effective = isf_override if isf_override else (isf or 50.0)
+
+    # Suggestions based on post-meal outcomes
+    icr_suggestion, isf_suggestion = _icr_isf_suggestions(records, icr_effective, isf_effective)
+
     return {
-        'icr': icr, 'isf': isf, 'tregludec_current': current_tregludec,
+        'icr': icr, 'isf': isf,
+        'icr_override': icr_override, 'isf_override': isf_override,
+        'icr_effective': icr_effective, 'isf_effective': isf_effective,
+        'icr_suggestion': icr_suggestion, 'isf_suggestion': isf_suggestion,
+        'tregludec_current': current_tregludec,
         'tregludec_recommendation': tregludec_recommendation, 'fasting_avg': fasting_avg,
         'data_points': {'icr': len(icr_values), 'isf': len(isf_values)},
         'confidence': confidence, 'total_records': len(records),
