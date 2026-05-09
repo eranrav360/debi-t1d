@@ -195,7 +195,7 @@ app.post('/api/glucose/vision', async (req, res) => {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'grok-2-vision',
+        model: 'grok-4-fast-non-reasoning',
         messages: [
           {
             role: 'system',
