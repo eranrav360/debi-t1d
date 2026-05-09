@@ -31,27 +31,75 @@ export const GL = {
 }
 
 // ── Sparkline ───────────────────────────────────────────────────────────────
+// ticks: optional array of y-values (e.g. [50,70,180,250,300]) that draw
+//        horizontal dashed reference lines + labels on the right side.
+//        They also anchor the y-domain so all tick values are always visible.
 export function Sparkline({
   values = [], width = 280, height = 60, color = 'var(--good)',
   fill = true, band = null, dots = false, last = true, padX = 4, padY = 6,
+  ticks = null,
 }) {
   if (!values.length) return null
-  const min = Math.min(...values, band ? band[0] - 10 : Infinity)
-  const max = Math.max(...values, band ? band[1] + 10 : -Infinity)
+
+  // Reserve right margin for tick labels when ticks are provided
+  const labelW = ticks?.length ? 28 : 0
+  const plotW  = width - labelW   // x extent of the data area
+
+  // Y-domain: data + band padding + ticks all anchor the range
+  const domainPts = [...values]
+  if (band)  domainPts.push(band[0] - 5, band[1] + 5)
+  if (ticks) domainPts.push(...ticks)
+  const min   = Math.min(...domainPts)
+  const max   = Math.max(...domainPts)
   const range = Math.max(max - min, 1)
-  const x = (i) => padX + (i / (values.length - 1)) * (width - padX * 2)
-  const y = (v) => padY + (1 - (v - min) / range) * (height - padY * 2)
-  const pts = values.map((v, i) => [x(i), y(v)])
+
+  const x  = (i) => padX + (i / (values.length - 1)) * (plotW - padX * 2)
+  const yv = (v) => padY + (1 - (v - min) / range) * (height - padY * 2)
+
+  const pts  = values.map((v, i) => [x(i), yv(v)])
   const path = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ')
   const area = path + ` L ${pts[pts.length - 1][0].toFixed(1)} ${height} L ${pts[0][0].toFixed(1)} ${height} Z`
   const last_ = pts[pts.length - 1]
-  const id = 'sg-' + Math.random().toString(36).slice(2, 7)
+  const id    = 'sg-' + Math.random().toString(36).slice(2, 7)
+
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block' }}>
+
+      {/* Y-axis reference lines — drawn first so the curve renders on top */}
+      {ticks && ticks.map(val => {
+        const yy = yv(val)
+        if (yy < padY - 4 || yy > height - padY + 4) return null   // off-screen
+        const isLow  = val === 70
+        const isHigh = val === 180
+        const lineColor  = isLow ? 'var(--cold)' : isHigh ? 'var(--warn)' : 'var(--hair)'
+        const labelColor = isLow ? 'var(--cold)' : isHigh ? 'var(--warn)' : 'var(--ink-3)'
+        return (
+          <g key={val}>
+            <line
+              x1={padX} y1={yy.toFixed(1)} x2={(plotW - padX).toFixed(1)} y2={yy.toFixed(1)}
+              stroke={lineColor} strokeWidth={isLow || isHigh ? 1 : 0.75}
+              strokeDasharray="3,5" opacity="0.75"
+            />
+            <text
+              x={plotW + 3} y={(yy + 3.5).toFixed(1)}
+              fontSize="9" fontFamily="Rubik,sans-serif"
+              fill={labelColor} fontWeight={isLow || isHigh ? '700' : '400'}
+            >{val}</text>
+          </g>
+        )
+      })}
+
+      {/* In-range band */}
       {band && (
-        <rect x="0" y={y(band[1])} width={width} height={Math.max(0, y(band[0]) - y(band[1]))}
-              fill="var(--good-soft)" opacity="0.55" rx="3"/>
+        <rect
+          x={padX} y={yv(band[1]).toFixed(1)}
+          width={plotW - padX * 2}
+          height={Math.max(0, yv(band[0]) - yv(band[1])).toFixed(1)}
+          fill="var(--good-soft)" opacity="0.45" rx="2"
+        />
       )}
+
+      {/* Gradient area fill */}
       {fill && <>
         <defs>
           <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
@@ -61,10 +109,15 @@ export function Sparkline({
         </defs>
         <path d={area} fill={`url(#${id})`}/>
       </>}
+
+      {/* Main line */}
       <path d={path} fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+
       {dots && pts.map((p, i) => (
         <circle key={i} cx={p[0]} cy={p[1]} r="1.6" fill={color} opacity={i === pts.length - 1 ? 1 : 0.35}/>
       ))}
+
+      {/* Latest-point dot */}
       {last && (
         <>
           <circle cx={last_[0]} cy={last_[1]} r="6" fill="#fff"/>

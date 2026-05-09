@@ -173,30 +173,24 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Sparkline */}
+          {/* Sparkline with y-axis ticks */}
           <div style={{ direction: 'ltr' }}>
             {sparkValues.length > 1 ? (
               <Sparkline
                 values={sparkValues}
                 width={sparkWidth}
-                height={80}
+                height={90}
                 color={glColor}
                 band={[70, 180]}
+                ticks={[50, 70, 180, 250, 300]}
                 fill
                 last
               />
             ) : (
-              <div style={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ height: 90, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span className="muted" style={{ fontSize: 13 }}>ממתין לנתונים…</span>
               </div>
             )}
-          </div>
-
-          {/* Band legend */}
-          <div className="row" style={{ marginTop: 8, gap: 14, fontSize: 11 }}>
-            <span style={{ color: 'var(--cold)' }}>↓ נמוך מ-70</span>
-            <span style={{ color: 'var(--good)', fontWeight: 700 }}>● 70–180 טווח</span>
-            <span style={{ color: 'var(--warn)' }}>↑ גבוה מ-180</span>
           </div>
         </div>
 
