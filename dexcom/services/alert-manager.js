@@ -227,14 +227,24 @@ async function fireAlert(rule, reading, testMode = false) {
 /**
  * Check a new reading against all enabled rules.
  * Called by server.js on every new reading — fire and forget.
+ *
+ * NOTE: getRules() returns camelCase keys for the REST API; the internal
+ * helpers (shouldFire / buildMessage) expect snake_case.  Normalise here.
  */
 async function check(reading) {
   if (!db) return;
   try {
     const rules = await getRules();
     for (const rule of rules) {
-      if (await shouldFire(rule, reading)) {
-        await fireAlert(rule, reading);
+      const r = {
+        ...rule,
+        condition_type:   rule.conditionType,
+        duration_minutes: rule.durationMinutes,
+        cooldown_minutes: rule.cooldownMinutes,
+        name_he:          rule.nameHe,
+      };
+      if (await shouldFire(r, reading)) {
+        await fireAlert(r, reading);
       }
     }
   } catch (err) {
