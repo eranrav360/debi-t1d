@@ -21,18 +21,20 @@ export default function SettingsPage() {
     })
   }, [])
 
-  async function save() {
+  async function save(overrides = {}) {
     setSaving(true)
-    const icr = icrInput.trim() ? parseFloat(icrInput) : null
-    const isf = isfInput.trim() ? parseFloat(isfInput) : null
+    const icr = ('icr' in overrides) ? overrides.icr : (icrInput.trim() ? parseFloat(icrInput) : null)
+    const isf = ('isf' in overrides) ? overrides.isf : (isfInput.trim() ? parseFloat(isfInput) : null)
     await updateSettings({ icr_override: icr, isf_override: isf })
-    // Refresh stats so suggestions + effective values update
     const st = await getStatistics()
     setStats(st)
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
+
+  function saveICR() { save({ icr: icrInput.trim() ? parseFloat(icrInput) : null, isf: isfInput.trim() ? parseFloat(isfInput) : null }) }
+  function saveISF() { save({ icr: icrInput.trim() ? parseFloat(icrInput) : null, isf: isfInput.trim() ? parseFloat(isfInput) : null }) }
 
   function applySuggestion(type, value) {
     if (type === 'icr') setIcrInput(String(value))
@@ -87,7 +89,8 @@ export default function SettingsPage() {
           onInputChange={setIcrInput}
           inputPrefix="1:"
           inputPlaceholder={icr_auto ? String(icr_auto) : '15'}
-          onClear={() => setIcrInput('')}
+          onClear={() => { setIcrInput(''); save({ icr: null, isf: isfInput.trim() ? parseFloat(isfInput) : null }) }}
+          onSave={saveICR}
           suggestion={icr_suggestion}
           onApplySuggestion={() => applySuggestion('icr', icr_suggestion?.suggested)}
         />
@@ -107,24 +110,23 @@ export default function SettingsPage() {
           onInputChange={setIsfInput}
           inputPrefix=""
           inputPlaceholder={isf_auto ? String(isf_auto) : '50'}
-          onClear={() => setIsfInput('')}
+          onClear={() => { setIsfInput(''); save({ icr: icrInput.trim() ? parseFloat(icrInput) : null, isf: null }) }}
+          onSave={saveISF}
           suggestion={isf_suggestion}
           onApplySuggestion={() => applySuggestion('isf', isf_suggestion?.suggested)}
         />
 
       </div>
 
-      {/* Save button */}
-      <div style={{ position: 'absolute', bottom: 96, left: 16, right: 16, zIndex: 5 }}>
-        <button
-          className="btn btn-brand"
-          style={{ width: '100%', padding: 16, fontSize: 16 }}
-          onClick={save}
-          disabled={saving}
-        >
-          {saved ? '✓ נשמר' : saving ? 'שומר...' : 'שמור הגדרות'}
-        </button>
-      </div>
+      {saved && (
+        <div style={{
+          position: 'absolute', bottom: 96, left: 16, right: 16, zIndex: 5,
+          background: 'var(--good)', color: '#fff', borderRadius: 999,
+          padding: '12px 20px', textAlign: 'center', fontSize: 14, fontWeight: 700,
+        }}>
+          ✓ נשמר
+        </div>
+      )}
 
       <TabBar active="more"/>
     </div>
@@ -138,7 +140,7 @@ function ParamSection({
   effectiveValue, effectiveDisplay,
   isOverridden,
   inputValue, onInputChange, inputPrefix, inputPlaceholder,
-  onClear,
+  onClear, onSave,
   suggestion, onApplySuggestion,
 }) {
   return (
@@ -194,16 +196,22 @@ function ParamSection({
               max={label === 'ICR' ? '50' : '300'}
               step="0.5"
             />
-            {inputValue && (
-              <button onClick={onClear} style={{
-                border: '1px solid var(--hair)', background: 'var(--card)',
-                borderRadius: 999, padding: '6px 12px', fontSize: 12,
-                fontWeight: 600, cursor: 'pointer', color: 'var(--ink-3)', flexShrink: 0,
-              }}>
-                אוטומטי
-              </button>
-            )}
+            <button onClick={onSave} style={{
+              border: 0, background: 'var(--brand)', color: '#fff',
+              borderRadius: 999, padding: '8px 16px', fontSize: 13,
+              fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+            }}>
+              קבע
+            </button>
           </div>
+          {inputValue && (
+            <button onClick={onClear} style={{
+              border: 0, background: 'transparent', color: 'var(--ink-3)',
+              fontSize: 12, cursor: 'pointer', padding: 0, textAlign: 'right',
+            }}>
+              ← חזור לחישוב אוטומטי
+            </button>
+          )}
           <span className="muted" style={{ fontSize: 11 }}>{description} · השאר ריק לחישוב אוטומטי</span>
         </div>
       </div>
