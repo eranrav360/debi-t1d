@@ -119,7 +119,7 @@ body {
   overflow: hidden;
 }
 .tnum  { font-variant-numeric: tabular-nums; }
-.serif { font-family: 'Fraunces', Georgia, serif; font-weight: 500; letter-spacing: -0.01em; }
+.serif { font-family: 'Rubik', sans-serif; font-weight: 600; letter-spacing: -0.01em; }
 
 /* Hide scrollbars inside .app */
 .app *::-webkit-scrollbar { display: none; }
@@ -238,7 +238,7 @@ body {
    PAGE LAYOUT (legacy — non-redesigned pages)
 ═══════════════════════════════════════════════════════════ */
 .page { max-width: 680px; margin: 0 auto; padding: 20px 16px 100px; width: 100%; }
-.page-title { font-size: 22px; font-weight: 700; margin-bottom: 16px; color: var(--ink); font-family: 'Fraunces', Georgia, serif; }
+.page-title { font-size: 22px; font-weight: 700; margin-bottom: 16px; color: var(--ink); font-family: 'Rubik', sans-serif; }
 .card-title { font-size: 16px; font-weight: 600; color: var(--ink-2); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--hair); }
 
 /* Navbar hidden (replaced by bottom TabBar) */
