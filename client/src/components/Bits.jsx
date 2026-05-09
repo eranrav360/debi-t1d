@@ -4,6 +4,9 @@ import { useNavigate } from 'react-router-dom'
 import { IconHome, IconHistory, IconPlus, IconStats, IconMore, IconArrow, IconSparkle, IconMic } from './Icons'
 import { askDebi as apiAskDebi } from '../api'
 
+const _API  = (typeof import.meta !== 'undefined' ? (import.meta.env?.VITE_API_URL || '') : '') + '/api'
+const _GLUC = _API + '/glucose'
+
 // ── Glucose classifier ──────────────────────────────────────────────────────
 export const GL = {
   classify(v) {
@@ -157,7 +160,18 @@ export function AskDebi({ inset = false }) {
     setLoading(true)
     setMsg('')
     try {
-      const data = await apiAskDebi(q)
+      // Fetch live context in parallel — errors are non-fatal
+      const [glucRes, statsRes] = await Promise.allSettled([
+        fetch(`${_GLUC}/latest`).then(r => r.json()),
+        fetch(`${_API}/statistics`).then(r => r.json()),
+      ])
+      const context = {
+        glucose:   glucRes.status  === 'fulfilled' ? (glucRes.value?.reading?.value  ?? null) : null,
+        icr:       statsRes.status === 'fulfilled' ? (statsRes.value?.icr            ?? null) : null,
+        isf:       statsRes.status === 'fulfilled' ? (statsRes.value?.isf            ?? null) : null,
+        tregludec: statsRes.status === 'fulfilled' ? (statsRes.value?.current_tregludec ?? null) : null,
+      }
+      const data = await apiAskDebi(q, context)
       setReply(data.reply || 'לא הצלחתי לענות')
     } catch {
       setReply('שגיאה בחיבור לשרת')

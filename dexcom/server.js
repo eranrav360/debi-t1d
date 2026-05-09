@@ -254,7 +254,7 @@ app.post('/api/glucose/vision', async (req, res) => {
 // ─── Debi AI chat (Grok) ──────────────────────────────────────────────────────
 
 app.post('/api/glucose/chat', async (req, res) => {
-  const { message } = req.body || {};
+  const { message, context } = req.body || {};
   if (!message || !String(message).trim()) {
     return res.status(400).json({ error: 'message required' });
   }
@@ -263,6 +263,16 @@ app.post('/api/glucose/chat', async (req, res) => {
   if (!apiKey) {
     return res.status(500).json({ error: 'GROK_API_KEY not configured on server' });
   }
+
+  // Build patient-context block from live data sent by the frontend
+  const ctxLines = [];
+  if (context?.glucose)    ctxLines.push(`סוכר נוכחי: ${context.glucose} mg/dL`);
+  if (context?.icr)        ctxLines.push(`יחס אינסולין-פחמימות (ICR): 1:${context.icr} — יחידה אחת לכל ${context.icr}ג׳ פחמימות`);
+  if (context?.isf)        ctxLines.push(`רגישות לאינסולין (ISF): יחידה מורידה ${context.isf} mg/dL`);
+  if (context?.tregludec)  ctxLines.push(`טרגלודק: ${context.tregludec} יח׳ ביום`);
+  const patientBlock = ctxLines.length
+    ? `\n\nנתוני תהל ברגע זה:\n${ctxLines.join('\n')}\n\nהשתמשי בנתונים אלה לחישובים מדויקים.`
+    : '';
 
   try {
     const grokRes = await fetch('https://api.x.ai/v1/chat/completions', {
@@ -280,12 +290,13 @@ app.post('/api/glucose/chat', async (req, res) => {
 אמא שואלת אותך שאלות על ניהול האינסולין והתזונה של תהל.
 ענה תמיד בעברית, בצורה תמציתית (1–3 משפטים בלבד).
 התמחותך: ערכי פחמימות במזונות (בגרמים), מינון אינסולין, ניהול רמת סוכר.
-לשאלות על פחמימות — ציין ישירות את הגרמים, למשל: "המבורגר 220 גרם מכיל כ-30 גרם פחמימות (לחמניה + בשר ללא רטבים)".
-היי ישירה ומעשית — ללא הסתייגויות רפואיות ארוכות.`,
+לשאלות על פחמימות — ציין ישירות את הגרמים, למשל: "המבורגר 220 גרם מכיל כ-30 גרם פחמימות".
+לשאלות על מינון — חשבי לפי ה-ICR וה-ISF של תהל, והתחשבי בסוכר הנוכחי שלה.
+היי ישירה ומעשית — ללא הסתייגויות רפואיות ארוכות.${patientBlock}`,
           },
           { role: 'user', content: String(message).trim() },
         ],
-        max_tokens: 250,
+        max_tokens: 300,
         temperature: 0.3,
       }),
     });

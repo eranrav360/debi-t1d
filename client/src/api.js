@@ -83,5 +83,5 @@ export const updateAlertRule = (id, patch) =>
 export const testAlertRule = (id) =>
   fetch(`${GLUCOSE}/rules/${id}/test`, { method: 'POST' }).then(r => r.json())
 
-export const askDebi    = (message) => post(`${GLUCOSE}/chat`,   { message })
+export const askDebi    = (message, context) => post(`${GLUCOSE}/chat`, { message, context })
 export const analyzeFood = (image)   => post(`${GLUCOSE}/vision`, { image, mimeType: 'image/jpeg' })
