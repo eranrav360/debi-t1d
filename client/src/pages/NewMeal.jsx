@@ -120,10 +120,11 @@ export default function NewMeal() {
         {/* ── Step 1: Carbs ── */}
         {step === 1 && <>
           {/* Camera card */}
-          <div className="card" style={{
+          <div className="card" onClick={() => navigate('/camera')} style={{
             padding: 14, display: 'flex', gap: 12, alignItems: 'center',
             background: 'linear-gradient(135deg, var(--brand-tint), #FBF3EA)',
             border: '0.5px solid rgba(215,116,83,0.18)',
+            cursor: 'pointer',
           }}>
             <div style={{ width: 40, height: 40, borderRadius: 12, background: '#fff', color: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <IconCamera size={20} stroke={1.8}/>

@@ -152,6 +152,13 @@ export default function Dashboard() {
           )}
         </div>
 
+        {/* ── Quick tiles ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--gap)' }}>
+          <QuickTile icon={IconMeal}    label="ארוחה" sub="חישוב מנה"       tint="var(--brand-tint)" color="var(--brand)"  onClick={() => navigate('/meal')} />
+          <QuickTile icon={IconSyringe} label="הזרקה" sub="נובו / טרגלודק" tint="var(--good-soft)" color="var(--good)"   onClick={() => navigate('/injection')} />
+          <QuickTile icon={IconCamera}  label="צילום"  sub="זיהוי פחמימות"  tint="#F2EBDD"          color="var(--ink-3)"  onClick={() => navigate('/camera')} />
+        </div>
+
         {/* ── Trend sparkline widget ── */}
         <div className="card" style={{ padding: 16 }}>
           {/* Header + range selector */}
@@ -218,13 +225,6 @@ export default function Dashboard() {
             </div>
           )
         })()}
-
-        {/* ── Quick tiles ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--gap)' }}>
-          <QuickTile icon={IconMeal}    label="ארוחה" sub="חישוב מנה"       tint="var(--brand-tint)" color="var(--brand)"  onClick={() => navigate('/meal')} />
-          <QuickTile icon={IconSyringe} label="הזרקה" sub="נובו / טרגלודק" tint="var(--good-soft)" color="var(--good)"   onClick={() => navigate('/injection')} />
-          <QuickTile icon={IconCamera}  label="צילום"  sub="זיהוי פחמימות"  tint="#F2EBDD"          color="var(--ink-3)"  onClick={() => navigate('/camera')} />
-        </div>
 
         {/* ── Tregludec warning ── */}
         {data && !data.today_tregludec && (
