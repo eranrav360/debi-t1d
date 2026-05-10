@@ -30,8 +30,10 @@
   --good-soft: #DCE8D6;
   --warn: #D9A14F;
   --warn-soft: #F5E2BD;
-  --bad: #C44E36;
+  --bad: #B83520;
   --bad-soft: #F2D2C7;
+  --low: #D96B50;
+  --low-soft: #F8DDD7;
   --cold: #6B92B2;
   --cold-soft: #D8E4EE;
 
@@ -144,6 +146,7 @@ body {
 .pill-good  { background: var(--good-soft);  color: #4A7253; }
 .pill-warn  { background: var(--warn-soft);  color: #8A6520; }
 .pill-bad   { background: var(--bad-soft);   color: #8A3324; }
+.pill-low   { background: var(--low-soft);   color: #9E3D28; }
 .pill-cold  { background: var(--cold-soft);  color: #3F6584; }
 .pill-brand { background: var(--brand-soft); color: var(--brand-deep); }
 

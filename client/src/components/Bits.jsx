@@ -17,16 +17,16 @@ export const GL = {
     return 'urgentHigh'
   },
   color(v) {
-    return ({ urgent: 'var(--bad)', low: 'var(--cold)', good: 'var(--good)', high: 'var(--warn)', urgentHigh: 'var(--bad)' })[GL.classify(v)]
+    return ({ urgent: 'var(--bad)', low: 'var(--low)', good: 'var(--good)', high: 'var(--warn)', urgentHigh: 'var(--bad)' })[GL.classify(v)]
   },
   soft(v) {
-    return ({ urgent: 'var(--bad-soft)', low: 'var(--cold-soft)', good: 'var(--good-soft)', high: 'var(--warn-soft)', urgentHigh: 'var(--bad-soft)' })[GL.classify(v)]
+    return ({ urgent: 'var(--bad-soft)', low: 'var(--low-soft)', good: 'var(--good-soft)', high: 'var(--warn-soft)', urgentHigh: 'var(--bad-soft)' })[GL.classify(v)]
   },
   label(v) {
     return ({ urgent: 'נמוך מאוד', low: 'נמוך', good: 'בטווח', high: 'גבוה', urgentHigh: 'גבוה מאוד' })[GL.classify(v)]
   },
   pillClass(v) {
-    return ({ urgent: 'pill-bad', low: 'pill-cold', good: 'pill-good', high: 'pill-warn', urgentHigh: 'pill-bad' })[GL.classify(v)]
+    return ({ urgent: 'pill-bad', low: 'pill-low', good: 'pill-good', high: 'pill-warn', urgentHigh: 'pill-bad' })[GL.classify(v)]
   },
 }
 
