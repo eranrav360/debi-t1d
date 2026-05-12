@@ -69,14 +69,21 @@ export default function Statistics() {
           <>
             <div className="row" style={{ alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
               <span className="bignum tnum" style={{ fontSize: 56, color: 'var(--good)', fontWeight: 500 }}>{inRange}%</span>
-              <div className="col" style={{ gap: 3 }}>
-                {tirStats.readings > 0 && (
-                  <span style={{ fontSize: 12, color: 'var(--ink-2)' }}>{tirStats.readings} קריאות</span>
-                )}
+              <div className="col" style={{ gap: 4 }}>
                 {tirStats.avg != null && (
-                  <span style={{ fontSize: 12, color: 'var(--ink-2)' }}>
-                    ממוצע <strong style={{ color: 'var(--ink)', fontWeight: 700 }}>{tirStats.avg}</strong> <span style={{ fontSize: 10 }}>mg/dL</span>
-                  </span>
+                  <div className="row" style={{ alignItems: 'baseline', gap: 5 }}>
+                    <span className="tnum" style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)' }}>{tirStats.avg}</span>
+                    <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>mg/dL</span>
+                    {tirStats.readings > 0 && (
+                      <>
+                        <span style={{ color: 'var(--hair)', fontSize: 13 }}>·</span>
+                        <span style={{ fontSize: 12, color: 'var(--ink-2)' }}>{tirStats.readings} קריאות</span>
+                      </>
+                    )}
+                  </div>
+                )}
+                {tirStats.avg == null && tirStats.readings > 0 && (
+                  <span style={{ fontSize: 12, color: 'var(--ink-2)' }}>{tirStats.readings} קריאות</span>
                 )}
               </div>
             </div>
