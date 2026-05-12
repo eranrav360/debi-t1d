@@ -254,7 +254,7 @@ app.post('/api/glucose/vision', async (req, res) => {
 // ─── Debi AI chat (Grok) ──────────────────────────────────────────────────────
 
 app.post('/api/glucose/chat', async (req, res) => {
-  const { message, context } = req.body || {};
+  const { message, context, history = [] } = req.body || {};
   if (!message || !String(message).trim()) {
     return res.status(400).json({ error: 'message required' });
   }
@@ -273,6 +273,13 @@ app.post('/api/glucose/chat', async (req, res) => {
   const patientBlock = ctxLines.length
     ? `\n\nנתוני תהל ברגע זה:\n${ctxLines.join('\n')}\n\nהשתמשי בנתונים אלה לחישובים מדויקים.`
     : '';
+
+  // Sanitise conversation history — keep last 10 turns, only user/assistant roles
+  const priorTurns = Array.isArray(history)
+    ? history
+        .filter(m => m && (m.role === 'user' || m.role === 'assistant') && m.content)
+        .slice(-10)
+    : [];
 
   try {
     const grokRes = await fetch('https://api.x.ai/v1/chat/completions', {
@@ -294,6 +301,7 @@ app.post('/api/glucose/chat', async (req, res) => {
 לשאלות על מינון — חשבי לפי ה-ICR וה-ISF של תהל, והתחשבי בסוכר הנוכחי שלה.
 היי ישירה ומעשית — ללא הסתייגויות רפואיות ארוכות.${patientBlock}`,
           },
+          ...priorTurns,
           { role: 'user', content: String(message).trim() },
         ],
         max_tokens: 300,

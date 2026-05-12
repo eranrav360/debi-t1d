@@ -50,28 +50,6 @@ export default function Statistics() {
         ))}
       </div>
 
-      {/* Tregludec recommendation hero */}
-      {stats?.tregludec_recommendation && !stats?.hypo_warning && (
-        <div style={{
-          padding: 18, borderRadius: 24,
-          background: 'linear-gradient(160deg, #FEF1E6 0%, #F8E5D2 100%)',
-          border: '0.5px solid rgba(215,116,83,0.18)',
-        }}>
-          <div className="row" style={{ gap: 8, marginBottom: 8 }}>
-            <span className="pill pill-brand">המלצה</span>
-            <span className="muted" style={{ fontSize: 11 }}>· מבוסס מגמת בסיס</span>
-          </div>
-          <div className="serif" style={{ fontSize: 20, lineHeight: 1.3, fontWeight: 500, marginBottom: 6 }}>
-            {stats.tregludec_recommendation}
-          </div>
-          {stats.fasting_avg && (
-            <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.55 }}>
-              סוכר בצום ממוצע: {stats.fasting_avg} mg/dL
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Hypo warning */}
       {stats?.hypo_warning && (
         <div style={{ padding: '12px 14px', borderRadius: 'var(--r)', background: 'var(--cold-soft)', border: '1px solid var(--cold)', fontSize: 13, color: '#3F6584' }}>
@@ -91,20 +69,27 @@ export default function Statistics() {
           <>
             <div className="row" style={{ alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
               <span className="bignum tnum" style={{ fontSize: 56, color: 'var(--good)', fontWeight: 500 }}>{inRange}%</span>
-              {tirStats.readings > 0 && (
-                <span style={{ fontSize: 12, color: 'var(--ink-2)' }}>{tirStats.readings} קריאות</span>
-              )}
+              <div className="col" style={{ gap: 3 }}>
+                {tirStats.readings > 0 && (
+                  <span style={{ fontSize: 12, color: 'var(--ink-2)' }}>{tirStats.readings} קריאות</span>
+                )}
+                {tirStats.avg != null && (
+                  <span style={{ fontSize: 12, color: 'var(--ink-2)' }}>
+                    ממוצע <strong style={{ color: 'var(--ink)', fontWeight: 700 }}>{tirStats.avg}</strong> <span style={{ fontSize: 10 }}>mg/dL</span>
+                  </span>
+                )}
+              </div>
             </div>
             {/* TIR bar */}
             <div style={{ display: 'flex', height: 14, borderRadius: 999, overflow: 'hidden', gap: 2 }}>
-              {low > 0 &&     <div style={{ flex: low,     background: 'var(--cold)' }}/>}
+              {low > 0 &&     <div style={{ flex: low,     background: 'var(--low)' }}/>}
               {inRange > 0 && <div style={{ flex: inRange, background: 'var(--good)' }}/>}
               {high > 0 &&    <div style={{ flex: high,    background: 'var(--warn)' }}/>}
             </div>
             <div className="row" style={{ marginTop: 10, gap: 14, fontSize: 11, flexWrap: 'wrap' }}>
               <LegendDot color="var(--warn)"  label="גבוה"   v={`${high}%`}/>
               <LegendDot color="var(--good)"  label="בטווח"  v={`${inRange}%`}/>
-              <LegendDot color="var(--cold)"  label="נמוך"   v={`${low}%`}/>
+              <LegendDot color="var(--low)"   label="נמוך"   v={`${low}%`}/>
             </div>
           </>
         ) : (
@@ -118,15 +103,17 @@ export default function Statistics() {
           <ParamCard
             label="ICR"
             hint="יחס פחמימות"
-            value={stats.icr ? `1:${stats.icr}` : '—'}
-            sub={stats.icr ? `${stats.data_points?.icr || 0} מדידות` : 'ברירת מחדל 1:15'}
+            value={stats.icr_effective ? `1:${stats.icr_effective}` : '—'}
+            sub={stats.icr_override ? `ידני` : (stats.icr ? `${stats.data_points?.icr || 0} מדידות` : 'ברירת מחדל')}
+            badge={stats.icr_override ? 'ידני' : null}
             confidence={stats.confidence}
           />
           <ParamCard
             label="ISF"
             hint="רגישות"
-            value={stats.isf ? String(stats.isf) : '—'}
-            sub={stats.isf ? `${stats.data_points?.isf || 0} מדידות` : 'ברירת מחדל 50'}
+            value={stats.isf_effective ? String(stats.isf_effective) : '—'}
+            sub={stats.isf_override ? `ידני` : (stats.isf ? `${stats.data_points?.isf || 0} מדידות` : 'ברירת מחדל')}
+            badge={stats.isf_override ? 'ידני' : null}
             confidence={stats.confidence}
           />
         </div>
@@ -183,16 +170,25 @@ function LegendDot({ color, label, v }) {
   )
 }
 
-function ParamCard({ label, hint, value, sub, confidence }) {
+function ParamCard({ label, hint, value, sub, confidence, badge }) {
   const confColor = confidence === 'high' ? 'var(--good)' : confidence === 'medium' ? 'var(--warn)' : 'var(--ink-4)'
   return (
     <div className="card" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div className="col" style={{ gap: 1 }}>
-        <span className="label">{label}</span>
+      <div className="col" style={{ gap: 3 }}>
+        <div className="row" style={{ gap: 5, alignItems: 'center' }}>
+          <span className="label">{label}</span>
+          {badge && (
+            <span style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: 0.3,
+              color: 'var(--brand-deep)', background: 'var(--brand-tint)',
+              padding: '2px 6px', borderRadius: 999,
+            }}>{badge}</span>
+          )}
+        </div>
         <span className="muted" style={{ fontSize: 11 }}>{hint}</span>
       </div>
       <div className="bignum tnum" style={{ fontSize: 32, fontWeight: 500, color: 'var(--ink)' }}>{value}</div>
-      <span style={{ fontSize: 11, color: confColor }}>{sub}</span>
+      <span style={{ fontSize: 11, color: badge ? 'var(--brand-deep)' : confColor }}>{sub}</span>
     </div>
   )
 }

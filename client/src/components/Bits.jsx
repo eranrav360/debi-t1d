@@ -201,6 +201,11 @@ export function TabBar({ active }) {
 }
 
 // ── Ask Debi bar ────────────────────────────────────────────────────────────
+// Module-level conversation state — persists across navigation, auto-clears after 30 min
+let _chatHistory    = []
+let _lastActivityMs = 0
+const HISTORY_TTL   = 30 * 60 * 1000   // 30 minutes
+
 export function AskDebi({ inset = false }) {
   const [msg,     setMsg]     = useState('')
   const [reply,   setReply]   = useState(null)
@@ -213,19 +218,36 @@ export function AskDebi({ inset = false }) {
     setLoading(true)
     setMsg('')
     try {
+      // Auto-clear history after 30 min of inactivity
+      if (_lastActivityMs && Date.now() - _lastActivityMs > HISTORY_TTL) {
+        _chatHistory = []
+      }
+
       // Fetch live context in parallel — errors are non-fatal
       const [glucRes, statsRes] = await Promise.allSettled([
         fetch(`${_GLUC}/latest`).then(r => r.json()),
         fetch(`${_API}/statistics`).then(r => r.json()),
       ])
+      const s = statsRes.status === 'fulfilled' ? statsRes.value : {}
       const context = {
-        glucose:   glucRes.status  === 'fulfilled' ? (glucRes.value?.reading?.value  ?? null) : null,
-        icr:       statsRes.status === 'fulfilled' ? (statsRes.value?.icr            ?? null) : null,
-        isf:       statsRes.status === 'fulfilled' ? (statsRes.value?.isf            ?? null) : null,
-        tregludec: statsRes.status === 'fulfilled' ? (statsRes.value?.current_tregludec ?? null) : null,
+        glucose:   glucRes.status === 'fulfilled' ? (glucRes.value?.reading?.value ?? null) : null,
+        icr:       s.icr_effective ?? s.icr       ?? null,
+        isf:       s.isf_effective ?? s.isf       ?? null,
+        tregludec: s.tregludec_current             ?? null,
       }
-      const data = await apiAskDebi(q, context)
-      setReply(data.reply || 'לא הצלחתי לענות')
+
+      // Snapshot history before this turn so we don't include the reply yet
+      const prevHistory = [..._chatHistory]
+      const data = await apiAskDebi(q, context, prevHistory)
+      const replyText = data.reply || 'לא הצלחתי לענות'
+      setReply(replyText)
+
+      // Append this turn to persistent history
+      _chatHistory = [...prevHistory,
+        { role: 'user',      content: q         },
+        { role: 'assistant', content: replyText },
+      ]
+      _lastActivityMs = Date.now()
     } catch {
       setReply('שגיאה בחיבור לשרת')
     }

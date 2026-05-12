@@ -272,7 +272,24 @@ export default function CameraPage() {
             }}>
               <span className="label">מנה מומלצת</span>
               <div className="row" style={{ alignItems: 'baseline', gap: 8, marginTop: 8, marginBottom: 14 }}>
-                <span className="bignum tnum" style={{ fontSize: 88, color: 'var(--brand-deep)', fontWeight: 500 }}>{doseGiven}</span>
+                <input
+                  type="number"
+                  value={doseGiven}
+                  min="0"
+                  step="0.5"
+                  onChange={e => setDoseGiven(Math.max(0, parseFloat(e.target.value) || 0))}
+                  className="bignum tnum"
+                  style={{
+                    fontSize: 88, color: 'var(--brand-deep)', fontWeight: 500,
+                    background: 'transparent', border: 'none',
+                    borderBottom: '2px solid rgba(215,116,83,0.35)',
+                    outline: 'none', width: '130px', textAlign: 'center',
+                    fontFamily: 'inherit', padding: 0, lineHeight: 0.9,
+                    MozAppearance: 'textfield',
+                    WebkitAppearance: 'none',
+                    appearance: 'textfield',
+                  }}
+                />
                 <span style={{ fontSize: 20, fontWeight: 600, color: 'var(--brand-deep)' }}>יח׳</span>
               </div>
 
