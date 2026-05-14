@@ -14,7 +14,7 @@ const GLUCOSE_BASE = (import.meta.env.VITE_API_URL || '') + '/api/glucose'
 
 export default function Statistics() {
   const [stats, setStats]           = useState(null)
-  const [range, setRange]           = useState('7d')
+  const [range, setRange]           = useState('24h')
   const [tirStats, setTirStats]     = useState(null)
   const [loadingTIR, setLoadingTIR] = useState(false)
 

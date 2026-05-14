@@ -92,7 +92,7 @@ async function queryStats(hours) {
   return rows[0];
 }
 
-function isStale(timestamp, maxMinutes = 12) {
+function isStale(timestamp, maxMinutes = 10) {
   if (!timestamp) return true;
   return (Date.now() - new Date(timestamp).getTime()) > maxMinutes * 60_000;
 }
