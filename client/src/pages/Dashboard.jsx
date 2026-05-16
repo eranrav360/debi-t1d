@@ -214,7 +214,7 @@ export default function Dashboard() {
                 {sparkValues.length > 1 ? (
                   <Sparkline
                     values={sparkValues} width={sparkLandscape} height={72}
-                    color={glColor} band={[70, 180]} ticks={[70, 180, 250]} fill last
+                    color={glColor} band={[70, 180]} ticks={[70, 180, 250]} fill last={!isStale}
                   />
                 ) : (
                   <div style={{ height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -282,7 +282,7 @@ export default function Dashboard() {
       </div>
 
       {/* Scrollable body */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '8px var(--pad) 130px', display: 'flex', flexDirection: 'column', gap: 'var(--gap-lg)' }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: '8px var(--pad) 80px', display: 'flex', flexDirection: 'column', gap: 'var(--gap-lg)' }}>
 
         {/* ── Live glucose card ── */}
         <div className="card" style={{ padding: 18 }}>
@@ -347,7 +347,7 @@ export default function Dashboard() {
             {sparkValues.length > 1 ? (
               <Sparkline
                 values={sparkValues} width={sparkPortrait} height={90}
-                color={glColor} band={[70, 180]} ticks={[50, 70, 180, 250, 300]} fill last
+                color={glColor} band={[70, 180]} ticks={[50, 70, 180, 250, 300]} fill last={!isStale}
               />
             ) : (
               <div style={{ height: 90, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -443,11 +443,9 @@ export default function Dashboard() {
           </div>
         )}
 
-      </div>
-
-      {/* Floating Ask Debi */}
-      <div style={{ position: 'absolute', bottom: 96, left: 16, right: 16, zIndex: 4 }}>
+        {/* ── Ask Debi ── */}
         <AskDebi/>
+
       </div>
 
       <TabBar active="home"/>
