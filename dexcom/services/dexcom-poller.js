@@ -33,7 +33,7 @@ const APP_ID = 'd89443d2-327c-4a6f-89e5-496bbb0317db';
 const BASE_URL        = SERVERS[(process.env.DEXCOM_SERVER || 'us').toLowerCase()] || SERVERS.us;
 const USERNAME        = process.env.DEXCOM_USERNAME;
 const PASSWORD        = process.env.DEXCOM_PASSWORD;
-const POLL_INTERVAL    = 1 * 60 * 1000;  // 1 minute — catches new Dexcom readings faster
+const POLL_INTERVAL    = 5 * 60 * 1000;  // 5 minutes — matches Dexcom sensor update frequency
 // Dexcom Share API max window per call: 1440 minutes / 288 readings (24 h).
 // For deeper history we use cumulative calls — each call asks for "everything up
 // to N days back" and we slice off the part we already processed in the prior call.
