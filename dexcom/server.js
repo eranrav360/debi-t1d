@@ -123,7 +123,7 @@ app.get('/api/glucose/history', async (req, res) => {
 
 app.get('/api/glucose/stats', async (req, res) => {
   try {
-    const hours = Math.min(parseInt(req.query.hours) || 24, 168);
+    const hours = Math.min(parseInt(req.query.hours) || 24, 2160); // up to 90 days
     const stats = await queryStats(hours);
     res.json({ stats, hours });
   } catch (err) {
