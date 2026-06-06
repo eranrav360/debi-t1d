@@ -2,8 +2,9 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from sqlalchemy import create_engine, text, event
 from sqlalchemy.pool import NullPool, StaticPool
-import os, json, statistics, re
+import os, json, statistics, re, threading
 from datetime import datetime, date
+import urllib.request, urllib.error
 
 # --- Database setup ---
 _db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'debi.db')
@@ -28,6 +29,29 @@ else:
 # --- Flask app ---
 app = Flask(__name__, static_folder='client/dist', static_url_path='')
 CORS(app, origins=os.environ.get('CORS_ORIGINS', '*').split(','))
+
+# --- WhatsApp notifications (fire-and-forget via WAHA) ---
+_WAHA_URL     = os.environ.get('WAHA_URL', '').rstrip('/')
+_WAHA_KEY     = os.environ.get('WAHA_KEY', '')
+_WAHA_CHAT_ID = os.environ.get('WAHA_GROUP_ID', '')
+
+def send_whatsapp(text):
+    """Send a WhatsApp message in a background thread — never blocks the response."""
+    if not (_WAHA_URL and _WAHA_KEY and _WAHA_CHAT_ID):
+        return
+    def _send():
+        try:
+            body = json.dumps({'chatId': _WAHA_CHAT_ID, 'text': text}).encode()
+            req  = urllib.request.Request(
+                f'{_WAHA_URL}/api/sendText',
+                data=body,
+                headers={'Content-Type': 'application/json', 'X-Api-Key': _WAHA_KEY},
+                method='POST',
+            )
+            urllib.request.urlopen(req, timeout=10)
+        except Exception as e:
+            print(f'[whatsapp] send error: {e}')
+    threading.Thread(target=_send, daemon=True).start()
 
 # --- DB helpers ---
 
@@ -193,6 +217,19 @@ def add_novorapid():
                  'wg': float(item['weight_g']), 'c': float(item['carbs'])}
             )
         conn.commit()
+
+    # WhatsApp notification
+    carbs  = float(d.get('total_carbs', 0))
+    dose   = float(d['dose_given'])
+    pre    = int(d['pre_sugar']) if d.get('pre_sugar') else None
+    items  = d.get('meal_items', [])
+    lines  = ['💉 *הזרקה נרשמה*']
+    lines.append(f'מנה: *{dose} יח׳ נובורפיד*')
+    if carbs:  lines.append(f'פחמימות: {carbs:.0f}ג׳')
+    if pre:    lines.append(f'סוכר לפני: {pre} mg/dL')
+    if items:  lines.append('ארוחה: ' + ', '.join(i['food_name'] for i in items))
+    send_whatsapp('\n'.join(lines))
+
     return jsonify({'id': record_id, 'status': 'ok'})
 
 @app.route('/api/novorapid/<int:record_id>/post_sugar', methods=['PATCH'])
