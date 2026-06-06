@@ -334,6 +334,7 @@ def record_sensor_change():
     now = datetime.now().strftime('%Y-%m-%d %H:%M')
     with get_conn() as conn:
         db_insert(conn, 'INSERT INTO sensor_changes (changed_at) VALUES (:at)', {'at': now})
+    send_whatsapp('🔄 *חיישן Dexcom הוחלף*\nתוקף ל-10 ימים מ-' + now)
     return jsonify({'status': 'ok', 'changed_at': now})
 
 @app.route('/api/sensor/status', methods=['GET'])
