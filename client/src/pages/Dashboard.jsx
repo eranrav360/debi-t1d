@@ -445,15 +445,21 @@ export default function Dashboard() {
                 {replacingSensor ? '...' : 'החלפתי 🔄'}
               </button>
             </div>
-            {/* Pen status pills */}
-            {active_pens.length > 0 && (
-              <>
-                <hr className="hr" style={{ margin: '10px 0 8px' }}/>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {/* Pen status */}
+            <hr className="hr" style={{ margin: '10px 0 8px' }}/>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              {active_pens.length === 0 ? (
+                <button onClick={() => navigate('/pens')} style={{
+                  border: '1.5px dashed var(--hair)', background: 'transparent',
+                  borderRadius: 999, padding: '4px 12px', fontFamily: 'inherit',
+                  fontSize: 12, color: 'var(--ink-3)', cursor: 'pointer',
+                }}>+ פתח עט חדש</button>
+              ) : (
+                <>
                   {active_pens.map(pen => {
-                    const c        = PEN_CFG[pen.pen_type] || PEN_CFG.novorapid
-                    const penDays  = Math.ceil((new Date(pen.expires_at) - new Date().setHours(0,0,0,0)) / 86_400_000)
-                    const urgent   = penDays <= 3
+                    const c       = PEN_CFG[pen.pen_type] || PEN_CFG.novorapid
+                    const penDays = Math.ceil((new Date(pen.expires_at) - new Date().setHours(0,0,0,0)) / 86_400_000)
+                    const urgent  = penDays <= 3
                     return (
                       <div key={pen.id} onClick={() => navigate('/pens')} style={{
                         display: 'flex', alignItems: 'center', gap: 5,
@@ -471,9 +477,13 @@ export default function Dashboard() {
                       </div>
                     )
                   })}
-                </div>
-              </>
-            )}
+                  <button onClick={() => navigate('/pens')} style={{
+                    border: 'none', background: 'transparent', cursor: 'pointer',
+                    fontSize: 11, color: 'var(--ink-3)', padding: '4px 4px', fontFamily: 'inherit',
+                  }}>ניהול ←</button>
+                </>
+              )}
+            </div>
           </div>
         )}
 
