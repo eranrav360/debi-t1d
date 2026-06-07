@@ -38,21 +38,29 @@ _WAHA_CHAT_ID = os.environ.get('WAHA_GROUP_ID', '')
 def send_whatsapp(text):
     """Send a WhatsApp message in a background thread — never blocks the response."""
     if not (_WAHA_URL and _WAHA_KEY and _WAHA_CHAT_ID):
+        print(f'[whatsapp] skipped — missing config: url={bool(_WAHA_URL)} key={bool(_WAHA_KEY)} chat={bool(_WAHA_CHAT_ID)}')
         return
     def _send():
+        url = f'{_WAHA_URL}/api/sendText'
+        payload_dict = {'chatId': _WAHA_CHAT_ID, 'text': text, 'session': 'default'}
+        print(f'[whatsapp] sending → url={repr(url)} chatId={repr(_WAHA_CHAT_ID)}')
         try:
-            payload = json.dumps({'chatId': _WAHA_CHAT_ID, 'text': text, 'session': 'default'}).encode()
+            payload = json.dumps(payload_dict, ensure_ascii=False).encode('utf-8')
             req  = urllib.request.Request(
-                f'{_WAHA_URL}/api/sendText',
+                url,
                 data=payload,
-                headers={'Content-Type': 'application/json', 'X-Api-Key': _WAHA_KEY},
+                headers={'Content-Type': 'application/json; charset=utf-8', 'X-Api-Key': _WAHA_KEY},
                 method='POST',
             )
             res = urllib.request.urlopen(req, timeout=10)
-            print(f'[whatsapp] sent OK: {text[:40]}')
+            print(f'[whatsapp] sent OK ({res.status}): {text[:40]}')
+        except urllib.error.HTTPError as e:
+            body = e.read().decode('utf-8', errors='replace')
+            print(f'[whatsapp] HTTPError {e.code}: {body[:300]}')
+        except urllib.error.URLError as e:
+            print(f'[whatsapp] URLError: {e.reason}')
         except Exception as e:
-            body = e.read().decode('utf-8', errors='replace') if hasattr(e, 'read') else ''
-            print(f'[whatsapp] error {type(e).__name__}: {e} | {body}')
+            print(f'[whatsapp] error {type(e).__name__}: {e}')
     threading.Thread(target=_send, daemon=True).start()
 
 # --- DB helpers ---
