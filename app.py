@@ -50,10 +50,9 @@ def send_whatsapp(text):
                 method='POST',
             )
             urllib.request.urlopen(req, timeout=10)
-        except urllib.error.HTTPError as e:
-            print(f'[whatsapp] HTTP {e.code}: {e.read().decode()}')
         except Exception as e:
-            print(f'[whatsapp] send error: {e}')
+            body = e.read().decode('utf-8', errors='replace') if hasattr(e, 'read') else ''
+            print(f'[whatsapp] error: {type(e).__name__} {e} | response: {body}')
     threading.Thread(target=_send, daemon=True).start()
 
 # --- DB helpers ---
