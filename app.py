@@ -41,18 +41,18 @@ def send_whatsapp(text):
         return
     def _send():
         try:
-            payload = {'chatId': _WAHA_CHAT_ID, 'text': text, 'session': 'default'}
-            body = json.dumps(payload, ensure_ascii=False).encode('utf-8')
+            payload = json.dumps({'chatId': _WAHA_CHAT_ID, 'text': text, 'session': 'default'}).encode()
             req  = urllib.request.Request(
                 f'{_WAHA_URL}/api/sendText',
-                data=body,
-                headers={'Content-Type': 'application/json; charset=utf-8', 'X-Api-Key': _WAHA_KEY},
+                data=payload,
+                headers={'Content-Type': 'application/json', 'X-Api-Key': _WAHA_KEY},
                 method='POST',
             )
-            urllib.request.urlopen(req, timeout=10)
+            res = urllib.request.urlopen(req, timeout=10)
+            print(f'[whatsapp] sent OK: {text[:40]}')
         except Exception as e:
             body = e.read().decode('utf-8', errors='replace') if hasattr(e, 'read') else ''
-            print(f'[whatsapp] error: {type(e).__name__} {e} | response: {body}')
+            print(f'[whatsapp] error {type(e).__name__}: {e} | {body}')
     threading.Thread(target=_send, daemon=True).start()
 
 # --- DB helpers ---
