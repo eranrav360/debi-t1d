@@ -478,8 +478,9 @@ export default function Dashboard() {
                     )
                   })}
                   <button onClick={() => navigate('/pens')} style={{
-                    border: 'none', background: 'transparent', cursor: 'pointer',
-                    fontSize: 11, color: 'var(--ink-3)', padding: '4px 4px', fontFamily: 'inherit',
+                    border: '1px solid var(--hair)', background: 'var(--card)',
+                    borderRadius: 999, padding: '4px 10px', cursor: 'pointer',
+                    fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', fontFamily: 'inherit',
                   }}>ניהול ←</button>
                 </>
               )}

@@ -44,8 +44,11 @@ function daysUntil(dateStr) {
 
 function formatDate(dateStr) {
   if (!dateStr) return ''
-  const [y, m, d] = dateStr.split('-')
-  return `${d}/${m}/${y}`
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr
+  const day   = String(d.getUTCDate()).padStart(2, '0')
+  const month = String(d.getUTCMonth() + 1).padStart(2, '0')
+  return `${day}/${month}/${d.getUTCFullYear()}`
 }
 
 const PEN_CONFIG = {
@@ -215,22 +218,19 @@ export default function PenPage() {
   if (mode === 'list') {
     return (
       <div className="app">
-        <div style={{ padding: '14px var(--pad) 6px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+        {/* Header — back button only, title centred */}
+        <div style={{ padding: '14px var(--pad) 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <button onClick={() => navigate(-1)} style={{
             border: 0, background: 'var(--card)', borderRadius: 999,
             width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
           }}>
             <IconChev size={18}/>
           </button>
-          <span className="serif" style={{ fontSize: 18, fontWeight: 500, flex: 1 }}>עטים פתוחים</span>
-          <button onClick={startNew} style={{
-            border: 'none', background: 'var(--brand)', color: '#fff',
-            borderRadius: 999, padding: '7px 14px', fontFamily: 'inherit',
-            fontSize: 13, fontWeight: 700, cursor: 'pointer',
-          }}>+ עט חדש</button>
+          <span className="serif" style={{ fontSize: 18, fontWeight: 500 }}>עטים פתוחים</span>
+          <div style={{ width: 38 }}/>
         </div>
 
-        <div style={{ flex: 1, overflow: 'auto', padding: '8px var(--pad) 100px', display: 'flex', flexDirection: 'column', gap: 'var(--gap)' }}>
+        <div style={{ flex: 1, overflow: 'auto', padding: '8px var(--pad) 120px', display: 'flex', flexDirection: 'column', gap: 'var(--gap)' }}>
           {loading ? (
             <div className="muted" style={{ textAlign: 'center', paddingTop: 40 }}>טוען…</div>
           ) : pens.length === 0 ? (
@@ -241,11 +241,6 @@ export default function PenPage() {
               <span style={{ fontSize: 40 }}>💉</span>
               <span style={{ fontSize: 15, fontWeight: 600 }}>אין עטים פתוחים</span>
               <span style={{ fontSize: 13 }}>פתחי עט חדש כדי לעקוב אחר תאריך הפקיעה</span>
-              <button onClick={startNew} style={{
-                marginTop: 8, border: 'none', background: 'var(--brand)', color: '#fff',
-                borderRadius: 999, padding: '10px 24px', fontFamily: 'inherit',
-                fontSize: 14, fontWeight: 700, cursor: 'pointer',
-              }}>פתחי עט ראשון</button>
             </div>
           ) : (
             <>
@@ -258,6 +253,14 @@ export default function PenPage() {
               </div>
             </>
           )}
+        </div>
+
+        {/* Sticky CTA */}
+        <div style={{ position: 'absolute', bottom: 96, left: 16, right: 16, zIndex: 5 }}>
+          <button className="btn btn-brand" style={{ width: '100%', padding: 16, fontSize: 16 }}
+                  onClick={startNew}>
+            💉 פתח עט חדש
+          </button>
         </div>
 
         <TabBar active="more"/>
