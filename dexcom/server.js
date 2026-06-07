@@ -251,6 +251,64 @@ app.post('/api/glucose/vision', async (req, res) => {
   }
 });
 
+// ─── Pen OCR — extract lot number from pen label photo ───────────────────────
+
+app.post('/api/glucose/ocr-pen', async (req, res) => {
+  const { image, mimeType = 'image/jpeg' } = req.body || {};
+  if (!image) return res.status(400).json({ error: 'image (base64) required' });
+
+  const apiKey = process.env.GROK_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'GROK_API_KEY not configured' });
+
+  const dataUrl = `data:${mimeType};base64,${image}`;
+
+  try {
+    const grokRes = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'grok-4-fast-non-reasoning',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an OCR assistant for insulin pen labels.
+Extract the lot/batch number (LOT / מספר אצווה) from the pen label in the photo.
+Return JSON only, no markdown: {"code":"LOT_NUMBER","pen_type":"novorapid|tregludec|unknown"}
+- code: the lot/batch number exactly as printed (e.g. "FX12345A") — empty string if not visible
+- pen_type: "novorapid" for NovoRapid/NovoLog (orange label), "tregludec" for Tresiba/Tregopil/Tregludec (green label), "unknown" otherwise`,
+          },
+          {
+            role: 'user',
+            content: [
+              { type: 'image_url', image_url: { url: dataUrl } },
+              { type: 'text', text: 'Read the lot/batch number from this insulin pen label.' },
+            ],
+          },
+        ],
+        max_tokens: 80,
+        temperature: 0.1,
+      }),
+    });
+
+    if (!grokRes.ok) {
+      const detail = await grokRes.text();
+      console.error('[dexcom-server] ocr-pen API error:', grokRes.status, detail);
+      return res.status(502).json({ error: 'Vision API error' });
+    }
+
+    const data = await grokRes.json();
+    const raw  = data.choices?.[0]?.message?.content?.trim() || '{}';
+    const json = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    let parsed;
+    try { parsed = JSON.parse(json); } catch { parsed = { code: '', pen_type: 'unknown' }; }
+
+    res.json({ code: parsed.code || '', pen_type: parsed.pen_type || 'unknown' });
+  } catch (err) {
+    console.error('[dexcom-server] /ocr-pen error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Debi AI chat (Grok) ──────────────────────────────────────────────────────
 
 app.post('/api/glucose/chat', async (req, res) => {

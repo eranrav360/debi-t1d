@@ -10,6 +10,7 @@ import FreeMeal         from './pages/FreeMeal'
 import AlertAdmin       from './pages/AlertAdmin'
 import More             from './pages/More'
 import SettingsPage     from './pages/SettingsPage'
+import PenPage          from './pages/PenPage'
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/alerts"     element={<AlertAdmin />} />
         <Route path="/more"       element={<More />} />
         <Route path="/settings"   element={<SettingsPage />} />
+        <Route path="/pens"       element={<PenPage />} />
       </Routes>
     </BrowserRouter>
   )

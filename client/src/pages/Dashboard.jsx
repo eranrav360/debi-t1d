@@ -72,6 +72,8 @@ export default function Dashboard() {
   const glColor     = currentReading ? GL.color(currentReading.value) : 'var(--ink-4)'
   const dir         = currentReading ? trendDir(currentReading.trend) : 'flat'
 
+  const active_pens     = data?.active_pens     || []
+
   const today_novorapid = data?.today_novorapid || []
   const today_tregludec = data?.today_tregludec || null
   const timelineEvents  = [
@@ -326,6 +328,33 @@ export default function Dashboard() {
           <QuickTile icon={IconCamera}  label="צילום"  sub="זיהוי פחמימות"  tint="#F2EBDD"           color="var(--ink-3)"  onClick={() => navigate('/camera')} />
         </div>
 
+        {/* ── Pen expiry row ── */}
+        {data && (
+          <div>
+            <div className="row-between" style={{ marginBottom: 8 }}>
+              <span className="label">עטים פתוחים</span>
+              <button onClick={() => navigate('/pens')} style={{
+                border: 'none', background: 'transparent', cursor: 'pointer',
+                fontSize: 12, color: 'var(--brand)', fontWeight: 600, padding: 0, fontFamily: 'inherit',
+              }}>{active_pens.length > 0 ? 'ניהול ←' : '+ עט חדש'}</button>
+            </div>
+            {active_pens.length === 0 ? (
+              <div onClick={() => navigate('/pens')} style={{
+                padding: '12px 14px', borderRadius: 'var(--r)',
+                background: 'var(--card)', border: '1.5px dashed var(--hair)',
+                display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+              }}>
+                <span style={{ fontSize: 20 }}>💉</span>
+                <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>רשמי עטים פתוחים לעקוב אחר תאריך פקיעה</span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 2 }}>
+                {active_pens.map(pen => <DashPenCard key={pen.id} pen={pen} onClick={() => navigate('/pens')}/>)}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── Trend sparkline widget ── */}
         <div className="card" style={{ padding: 16 }}>
           <div className="row-between" style={{ marginBottom: 14 }}>
@@ -477,6 +506,41 @@ const ICOMAP = {
   meal: { Ico: IconMeal,    color: 'var(--brand)',  bg: 'var(--brand-tint)' },
   inj:  { Ico: IconSyringe, color: 'var(--brand)',  bg: 'var(--brand-tint)' },
   long: { Ico: IconBolt,    color: 'var(--ink-2)',  bg: 'var(--bg-warm)'    },
+}
+
+const PEN_CFG = {
+  novorapid: { label: 'נובורפיד', color: '#D97420', tint: '#FFF0E6', border: '#F4C49A' },
+  tregludec: { label: 'טרגלודק',  color: '#208040', tint: '#E8F8EE', border: '#90D4A4' },
+}
+
+function DashPenCard({ pen, onClick }) {
+  const cfg      = PEN_CFG[pen.pen_type] || PEN_CFG.novorapid
+  const daysLeft = Math.ceil((new Date(pen.expires_at) - new Date().setHours(0,0,0,0)) / 86_400_000)
+  const isUrgent = daysLeft <= 3
+  return (
+    <div onClick={onClick} style={{
+      minWidth: 130, borderRadius: 14, padding: '12px 12px 10px',
+      background: isUrgent ? '#FFF5F5' : cfg.tint,
+      border: `1px solid ${isUrgent ? '#FECACA' : cfg.border}`,
+      cursor: 'pointer', flexShrink: 0,
+    }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: isUrgent ? '#991b1b' : cfg.color, marginBottom: 4 }}>
+        {cfg.label}
+      </div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: isUrgent ? '#dc2626' : cfg.color, lineHeight: 1 }}>
+        {daysLeft < 0 ? '—' : daysLeft}
+      </div>
+      <div style={{ fontSize: 10, color: isUrgent ? '#ef4444' : 'var(--ink-3)', marginTop: 1 }}>
+        {daysLeft < 0 ? 'פג תוקף' : daysLeft === 0 ? 'פג היום!' : 'ימים נותרו'}
+      </div>
+      <div style={{ marginTop: 8, height: 4, background: 'rgba(0,0,0,0.08)', borderRadius: 999, overflow: 'hidden' }}>
+        <div style={{
+          height: '100%', width: `${Math.max(0, Math.min(100, (daysLeft / 30) * 100))}%`,
+          background: isUrgent ? '#ef4444' : cfg.color, borderRadius: 999,
+        }}/>
+      </div>
+    </div>
+  )
 }
 
 function TimelineEvent({ ev, compact = false }) {

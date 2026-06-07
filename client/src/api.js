@@ -85,6 +85,12 @@ export const testAlertRule = (id) =>
 
 export const askDebi    = (message, context, history = []) => post(`${GLUCOSE}/chat`, { message, context, history })
 export const analyzeFood = (image)   => post(`${GLUCOSE}/vision`, { image, mimeType: 'image/jpeg' })
+export const ocrPen      = (image)   => post(`${GLUCOSE}/ocr-pen`, { image, mimeType: 'image/jpeg' })
+
+// ── Pen records ───────────────────────────────────────────────────────────────
+export const getPens    = ()     => fetch(`${BASE}/pens`).then(r => r.json())
+export const addPen     = (data) => post(`${BASE}/pens`, data)
+export const discardPen = (id)   => del(`${BASE}/pens/${id}`)
 
 // ── Patient settings (ICR / ISF overrides) ───────────────────────────────────
 export const getSettings    = ()     => fetch(`${BASE}/settings`).then(r => r.json())

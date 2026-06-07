@@ -2,8 +2,8 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from sqlalchemy import create_engine, text, event
 from sqlalchemy.pool import NullPool, StaticPool
-import os, json, statistics, re, threading
-from datetime import datetime, date
+import os, json, statistics, re, threading, time
+from datetime import datetime, date, timedelta
 import urllib.request, urllib.error
 
 # --- Database setup ---
@@ -116,6 +116,12 @@ def init_db():
             icr_override REAL,
             isf_override REAL,
             updated_at TEXT)''',
+        '''CREATE TABLE IF NOT EXISTS pen_records (
+            id {PK}, pen_type TEXT NOT NULL,
+            pen_code TEXT DEFAULT \'\',
+            opened_at DATE NOT NULL, expires_at DATE NOT NULL,
+            is_active INTEGER DEFAULT 1,
+            expiry_alerted INTEGER DEFAULT 0)''',
     ]
     with get_conn() as conn:
         for ddl in ddl_templates:
@@ -584,6 +590,80 @@ def _calc_stats():
         'consecutive_morning_hypos': consecutive_hypos
     }
 
+# --- Pen records API ---
+
+@app.route('/api/pens', methods=['GET'])
+def list_pens():
+    with get_conn() as conn:
+        result = conn.execute(text(
+            "SELECT * FROM pen_records WHERE is_active=1 ORDER BY expires_at ASC"
+        ))
+        return jsonify(rows(result))
+
+@app.route('/api/pens', methods=['POST'])
+def add_pen():
+    d = request.json
+    pen_type  = d.get('pen_type', '').strip()
+    pen_code  = d.get('pen_code', '').strip()
+    opened_at = d.get('opened_at') or date.today().isoformat()
+    opened_date  = date.fromisoformat(opened_at)
+    expires_date = opened_date + timedelta(days=30)
+    with get_conn() as conn:
+        new_id = db_insert(conn,
+            'INSERT INTO pen_records (pen_type, pen_code, opened_at, expires_at) VALUES (:pt, :pc, :oa, :ea)',
+            {'pt': pen_type, 'pc': pen_code,
+             'oa': opened_at, 'ea': expires_date.isoformat()}
+        )
+    pen_name = 'נובורפיד' if pen_type == 'novorapid' else 'טרגלודק'
+    code_str = f'\nקוד: {pen_code}' if pen_code else ''
+    send_whatsapp(f'💉 *עט {pen_name} נפתח*\nפג ב-{expires_date.strftime("%d/%m/%Y")}{code_str}')
+    return jsonify({'id': new_id, 'status': 'ok', 'expires_at': expires_date.isoformat()})
+
+@app.route('/api/pens/<int:pen_id>', methods=['DELETE'])
+def discard_pen(pen_id):
+    with get_conn() as conn:
+        conn.execute(text("UPDATE pen_records SET is_active=0 WHERE id=:id"), {'id': pen_id})
+        conn.commit()
+    return jsonify({'status': 'ok'})
+
+# --- Pen expiry background alerter ---
+
+def _check_pen_expiry_once():
+    try:
+        today = date.today()
+        threshold = (today + timedelta(days=3)).isoformat()
+        with get_conn() as conn:
+            result = conn.execute(text("""
+                SELECT * FROM pen_records
+                WHERE is_active=1 AND expiry_alerted=0 AND expires_at <= :d
+            """), {'d': threshold})
+            pens = rows(result)
+        for pen in pens:
+            expires   = date.fromisoformat(pen['expires_at'])
+            days_left = (expires - today).days
+            pen_name  = 'נובורפיד' if pen['pen_type'] == 'novorapid' else 'טרגלודק'
+            code_str  = f'\nקוד: {pen["pen_code"]}' if pen.get('pen_code') else ''
+            if days_left < 0:
+                msg = f'⏰ *עט {pen_name} פג תוקף לפני {-days_left} ימים!*{code_str}'
+            elif days_left == 0:
+                msg = f'⏰ *עט {pen_name} פג תוקף היום!*{code_str}'
+            else:
+                msg = f'⏰ *עט {pen_name} יפוג בעוד {days_left} ימים*{code_str}'
+            send_whatsapp(msg)
+            with get_conn() as conn2:
+                conn2.execute(text("UPDATE pen_records SET expiry_alerted=1 WHERE id=:id"), {'id': pen['id']})
+                conn2.commit()
+        if pens:
+            print(f'[pen-expiry] alerted for {len(pens)} pen(s)')
+    except Exception as e:
+        print(f'[pen-expiry] check error: {e}')
+
+def _pen_expiry_loop():
+    _check_pen_expiry_once()
+    while True:
+        time.sleep(24 * 60 * 60)
+        _check_pen_expiry_once()
+
 # --- Dashboard ---
 
 @app.route('/api/dashboard', methods=['GET'])
@@ -607,10 +687,14 @@ def dashboard():
         latest_sensor = row(conn.execute(
             text('SELECT * FROM sensor_changes ORDER BY changed_at DESC LIMIT 1')
         ))
+        active_pens = rows(conn.execute(text(
+            "SELECT * FROM pen_records WHERE is_active=1 ORDER BY expires_at ASC"
+        )))
     return jsonify({
         'today_novorapid': today_novo, 'today_tregludec': today_treg,
         'last_record': last_record, 'today_free_meals': today_free,
-        'latest_sensor': latest_sensor, 'stats': _calc_stats()
+        'latest_sensor': latest_sensor, 'stats': _calc_stats(),
+        'active_pens': active_pens,
     })
 
 # --- Serve React SPA ---
@@ -625,6 +709,7 @@ def serve_spa(path):
 
 # Run init_db when imported by Gunicorn (or any WSGI server), not just __main__
 init_db()
+threading.Thread(target=_pen_expiry_loop, daemon=True).start()
 
 if __name__ == '__main__':
     print("דבי | ניהול סוכרת סוג 1 — http://localhost:5000")
