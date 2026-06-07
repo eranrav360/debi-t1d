@@ -271,11 +271,12 @@ app.post('/api/glucose/ocr-pen', async (req, res) => {
         messages: [
           {
             role: 'system',
-            content: `You are an OCR assistant for insulin pen labels.
-Extract the lot/batch number (LOT / מספר אצווה) from the pen label in the photo.
-Return JSON only, no markdown: {"code":"LOT_NUMBER","pen_type":"novorapid|tregludec|unknown"}
-- code: the lot/batch number exactly as printed (e.g. "FX12345A") — empty string if not visible
-- pen_type: "novorapid" for NovoRapid/NovoLog (orange label), "tregludec" for Tresiba/Tregopil/Tregludec (green label), "unknown" otherwise`,
+            content: `You are an OCR assistant for Novo Nordisk insulin pen labels.
+The label has three printed lines: Manuf. date / Expiry date / Batch number.
+The Batch number is the SHORT alphanumeric code on the LAST line next to "Batch:" (e.g. "RP5T390", "RR73LY3") — NOT the long numeric barcode at the top of the label.
+Return JSON only, no markdown: {"code":"BATCH_CODE","pen_type":"novorapid|tregludec|unknown"}
+- code: the Batch value exactly as printed (short alphanumeric, typically 7 chars) — empty string if not readable
+- pen_type: "tregludec" if the label background is YELLOW or LIME-GREEN; "novorapid" if the label background is ORANGE; "unknown" otherwise`,
           },
           {
             role: 'user',
