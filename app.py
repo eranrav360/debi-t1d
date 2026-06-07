@@ -275,12 +275,17 @@ def add_tregludec():
     d = request.json
     hypo = d.get('had_hypo_morning')
     hypo_val = 1 if hypo else (0 if hypo is False else None)
+    dose = float(d['dose'])
+    notes = d.get('notes', '')
     with get_conn() as conn:
         db_insert(conn,
             'INSERT INTO tregludec_records (recorded_date, dose, notes, had_hypo_morning) VALUES (:d, :dose, :notes, :hypo)',
             {'d': d.get('recorded_date', date.today().isoformat()),
-             'dose': float(d['dose']), 'notes': d.get('notes', ''), 'hypo': hypo_val}
+             'dose': dose, 'notes': notes, 'hypo': hypo_val}
         )
+    lines = [f'💉 *טרגלודק* — {dose:.0f} יחידות']
+    if notes: lines.append(f'הערות: {notes}')
+    send_whatsapp('\n'.join(lines))
     return jsonify({'status': 'ok'})
 
 @app.route('/api/tregludec/<int:record_id>', methods=['DELETE'])
