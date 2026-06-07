@@ -462,8 +462,11 @@ export default function Dashboard() {
                         border: `1px solid ${urgent ? '#FECACA' : c.border}`,
                       }}>
                         <span style={{ fontSize: 11, fontWeight: 700, color: urgent ? '#991b1b' : c.color }}>{c.label}</span>
+                        {pen.pen_code && (
+                          <span style={{ fontSize: 10, color: 'var(--ink-3)', fontFamily: 'monospace' }}>·{pen.pen_code}</span>
+                        )}
                         <span className="tnum" style={{ fontSize: 11, color: urgent ? '#dc2626' : 'var(--ink-3)', fontWeight: 600 }}>
-                          {penDays < 0 ? 'פג!' : penDays === 0 ? 'היום!' : `${penDays}ד׳`}
+                          {penDays < 0 ? 'פג!' : penDays === 0 ? 'היום!' : `${penDays}י׳`}
                         </span>
                       </div>
                     )
