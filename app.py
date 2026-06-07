@@ -41,14 +41,17 @@ def send_whatsapp(text):
         return
     def _send():
         try:
-            body = json.dumps({'chatId': _WAHA_CHAT_ID, 'text': text, 'session': 'default'}).encode()
+            payload = {'chatId': _WAHA_CHAT_ID, 'text': text, 'session': 'default'}
+            body = json.dumps(payload, ensure_ascii=False).encode('utf-8')
             req  = urllib.request.Request(
                 f'{_WAHA_URL}/api/sendText',
                 data=body,
-                headers={'Content-Type': 'application/json', 'X-Api-Key': _WAHA_KEY},
+                headers={'Content-Type': 'application/json; charset=utf-8', 'X-Api-Key': _WAHA_KEY},
                 method='POST',
             )
             urllib.request.urlopen(req, timeout=10)
+        except urllib.error.HTTPError as e:
+            print(f'[whatsapp] HTTP {e.code}: {e.read().decode()}')
         except Exception as e:
             print(f'[whatsapp] send error: {e}')
     threading.Thread(target=_send, daemon=True).start()
