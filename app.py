@@ -41,7 +41,7 @@ def send_whatsapp(text):
         return
     def _send():
         try:
-            body = json.dumps({'chatId': _WAHA_CHAT_ID, 'text': text}).encode()
+            body = json.dumps({'chatId': _WAHA_CHAT_ID, 'text': text, 'session': 'default'}).encode()
             req  = urllib.request.Request(
                 f'{_WAHA_URL}/api/sendText',
                 data=body,
