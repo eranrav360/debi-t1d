@@ -328,33 +328,6 @@ export default function Dashboard() {
           <QuickTile icon={IconCamera}  label="צילום"  sub="זיהוי פחמימות"  tint="#F2EBDD"           color="var(--ink-3)"  onClick={() => navigate('/camera')} />
         </div>
 
-        {/* ── Pen expiry row ── */}
-        {data && (
-          <div>
-            <div className="row-between" style={{ marginBottom: 8 }}>
-              <span className="label">עטים פתוחים</span>
-              <button onClick={() => navigate('/pens')} style={{
-                border: 'none', background: 'transparent', cursor: 'pointer',
-                fontSize: 12, color: 'var(--brand)', fontWeight: 600, padding: 0, fontFamily: 'inherit',
-              }}>{active_pens.length > 0 ? 'ניהול ←' : '+ עט חדש'}</button>
-            </div>
-            {active_pens.length === 0 ? (
-              <div onClick={() => navigate('/pens')} style={{
-                padding: '12px 14px', borderRadius: 'var(--r)',
-                background: 'var(--card)', border: '1.5px dashed var(--hair)',
-                display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
-              }}>
-                <span style={{ fontSize: 20 }}>💉</span>
-                <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>רשמי עטים פתוחים לעקוב אחר תאריך פקיעה</span>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 2 }}>
-                {active_pens.map(pen => <DashPenCard key={pen.id} pen={pen} onClick={() => navigate('/pens')}/>)}
-              </div>
-            )}
-          </div>
-        )}
-
         {/* ── Trend sparkline widget ── */}
         <div className="card" style={{ padding: 16 }}>
           <div className="row-between" style={{ marginBottom: 14 }}>
