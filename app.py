@@ -238,12 +238,14 @@ def add_novorapid():
     carbs  = float(d.get('total_carbs', 0))
     dose   = float(d['dose_given'])
     pre    = int(d['pre_sugar']) if d.get('pre_sugar') else None
+    notes  = d.get('notes', '').strip()
     items  = d.get('meal_items', [])
     lines  = ['💉 *הזרקה נרשמה*']
     lines.append(f'מנה: *{dose} יח׳ נובורפיד*')
     if carbs:  lines.append(f'פחמימות: {carbs:.0f}ג׳')
     if pre:    lines.append(f'סוכר לפני: {pre} mg/dL')
     if items:  lines.append('ארוחה: ' + ', '.join(i['food_name'] for i in items))
+    if notes:  lines.append(f'הערות: {notes}')
     send_whatsapp('\n'.join(lines))
 
     return jsonify({'id': record_id, 'status': 'ok'})
