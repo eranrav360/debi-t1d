@@ -450,25 +450,54 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── Sensor card ── */}
+        {/* ── Sensor + pens card ── */}
         {data && (
-          <div className="card card-warm row-between" style={{ padding: 14 }}>
-            <div className="row" style={{ gap: 12 }}>
-              <SensorPie daysLeft={daysLeft ?? SENSOR_DAYS} total={SENSOR_DAYS}/>
-              <div className="col" style={{ gap: 0 }}>
-                <span style={{ fontSize: 14, fontWeight: 600 }}>חיישן Dexcom</span>
-                {daysLeft !== null
-                  ? <span className="muted" style={{ fontSize: 12 }}>נותרו {daysLeft} ימים</span>
-                  : <span className="muted" style={{ fontSize: 12, color: 'var(--bad)' }}>לא נרשמה החלפה</span>}
+          <div className="card card-warm" style={{ padding: 14 }}>
+            {/* Sensor row */}
+            <div className="row-between">
+              <div className="row" style={{ gap: 12 }}>
+                <SensorPie daysLeft={daysLeft ?? SENSOR_DAYS} total={SENSOR_DAYS}/>
+                <div className="col" style={{ gap: 0 }}>
+                  <span style={{ fontSize: 14, fontWeight: 600 }}>חיישן Dexcom</span>
+                  {daysLeft !== null
+                    ? <span className="muted" style={{ fontSize: 12 }}>נותרו {daysLeft} ימים</span>
+                    : <span className="muted" style={{ fontSize: 12, color: 'var(--bad)' }}>לא נרשמה החלפה</span>}
+                </div>
               </div>
+              <button onClick={handleSensorReplace} disabled={replacingSensor} style={{
+                border: '1px solid var(--hair)', background: 'var(--card)',
+                borderRadius: 999, padding: '6px 12px', fontSize: 12,
+                fontWeight: 600, cursor: 'pointer', color: 'var(--ink-2)',
+              }}>
+                {replacingSensor ? '...' : 'החלפתי 🔄'}
+              </button>
             </div>
-            <button onClick={handleSensorReplace} disabled={replacingSensor} style={{
-              border: '1px solid var(--hair)', background: 'var(--card)',
-              borderRadius: 999, padding: '6px 12px', fontSize: 12,
-              fontWeight: 600, cursor: 'pointer', color: 'var(--ink-2)',
-            }}>
-              {replacingSensor ? '...' : 'החלפתי 🔄'}
-            </button>
+            {/* Pen status pills */}
+            {active_pens.length > 0 && (
+              <>
+                <hr className="hr" style={{ margin: '10px 0 8px' }}/>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {active_pens.map(pen => {
+                    const c        = PEN_CFG[pen.pen_type] || PEN_CFG.novorapid
+                    const penDays  = Math.ceil((new Date(pen.expires_at) - new Date().setHours(0,0,0,0)) / 86_400_000)
+                    const urgent   = penDays <= 3
+                    return (
+                      <div key={pen.id} onClick={() => navigate('/pens')} style={{
+                        display: 'flex', alignItems: 'center', gap: 5,
+                        padding: '4px 10px', borderRadius: 999, cursor: 'pointer',
+                        background: urgent ? '#FFF5F5' : c.tint,
+                        border: `1px solid ${urgent ? '#FECACA' : c.border}`,
+                      }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: urgent ? '#991b1b' : c.color }}>{c.label}</span>
+                        <span className="tnum" style={{ fontSize: 11, color: urgent ? '#dc2626' : 'var(--ink-3)', fontWeight: 600 }}>
+                          {penDays < 0 ? 'פג!' : penDays === 0 ? 'היום!' : `${penDays}ד׳`}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            )}
           </div>
         )}
 
