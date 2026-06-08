@@ -5,14 +5,16 @@ import { GL } from '../components/Bits'
 
 const GLUC_BASE = (import.meta.env.VITE_API_URL || '') + '/api/glucose'
 
+function pad(n) { return String(n).padStart(2, '0') }
+
 function nowLocal() {
   const d = new Date()
-  d.setSeconds(0, 0)
-  return d.toISOString().slice(0, 16)
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 function todayISO() {
-  return new Date().toISOString().slice(0, 10)
+  const d = new Date()
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`
 }
 
 function nowTimeStr() {
