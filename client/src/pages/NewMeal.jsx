@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getFoods, getRecommendation, recordNovorapid, textCarbs } from '../api'
+import { getFoods, getRecommendation, recordNovorapid, recordFreeMeal, textCarbs } from '../api'
 import { GL } from '../components/Bits'
 import { IconCheck, IconArrow, IconCamera, IconChev } from '../components/Icons'
 import { TabBar } from '../components/Bits'
@@ -30,6 +30,7 @@ export default function NewMeal() {
   const [doseGiven, setDoseGiven] = useState(0)
   const [saving,    setSaving]    = useState(false)
   const [savedId,   setSavedId]   = useState(null)
+  const [mealOnly,  setMealOnly]  = useState(false)
 
   // Text input mode
   const [showText,      setShowText]      = useState(false)
@@ -102,6 +103,23 @@ export default function NewMeal() {
     } finally {
       setTextAnalyzing(false)
     }
+  }
+
+  async function saveMealOnly() {
+    if (saving) return
+    setSaving(true)
+    const notes = textInput.trim()
+      ? textInput
+      : mealItems.map(i => i.food_name).filter(Boolean).join(', ')
+    await recordFreeMeal({
+      carbs,
+      pre_sugar: presugar || null,
+      notes,
+      recorded_at: nowLocal().replace('T', ' '),
+    })
+    setSaving(false)
+    setMealOnly(true)
+    setStep(3)
   }
 
   async function goToStep2() {
@@ -355,7 +373,9 @@ export default function NewMeal() {
               <IconCheck size={42} stroke={2.4}/>
             </div>
             <div className="serif" style={{ fontSize: 26, fontWeight: 500 }}>נרשם בהצלחה</div>
-            <span className="muted" style={{ fontSize: 14, marginTop: 4 }}>{doseGiven} יח׳ נובורפיד · {carbs}ג׳ פחמימות</span>
+            <span className="muted" style={{ fontSize: 14, marginTop: 4 }}>
+              {mealOnly ? `${carbs}ג׳ פחמימות · ללא הזרקה` : `${doseGiven} יח׳ נובורפיד · ${carbs}ג׳ פחמימות`}
+            </span>
 
             <div className="card" style={{ marginTop: 24, padding: 14, width: '100%' }}>
               <span className="label">תזכורת בעוד שעה</span>
@@ -382,10 +402,22 @@ export default function NewMeal() {
           </button>
         )}
         {step === 1 && !(showText && textInput.trim() && !textResult) && (
-          <button className="btn btn-brand" style={{ width: '100%', padding: 16, fontSize: 16 }}
-                  onClick={goToStep2} disabled={carbs <= 0 && presugar <= 0}>
-            המשך · חישוב מנה
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <button className="btn btn-brand" style={{ width: '100%', padding: 16, fontSize: 16 }}
+                    onClick={goToStep2} disabled={carbs <= 0 && presugar <= 0}>
+              💉 המשך · חישוב מנה
+            </button>
+            {carbs > 0 && (
+              <button className="btn" style={{
+                width: '100%', padding: 14, fontSize: 15,
+                background: 'var(--card)', color: 'var(--ink)',
+                border: '1.5px solid var(--hair)', borderRadius: 14,
+                fontFamily: 'inherit', fontWeight: 600, cursor: 'pointer',
+              }} onClick={saveMealOnly} disabled={saving}>
+                {saving ? 'שומר...' : '🍽️ רשום ארוחה בלבד'}
+              </button>
+            )}
+          </div>
         )}
         {step === 2 && (
           <button className="btn btn-brand" style={{ width: '100%', padding: 16, fontSize: 16 }}
