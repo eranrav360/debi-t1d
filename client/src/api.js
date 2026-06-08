@@ -51,6 +51,9 @@ export const deleteTregludec = (id) => del(`${BASE}/tregludec/${id}`)
 export const getStatistics = () =>
   fetch(`${BASE}/statistics`).then(r => r.json())
 
+export const getReport = (from, to) =>
+  fetch(`${BASE}/report?from=${from}&to=${to}`).then(r => r.json())
+
 export const getDashboard = () =>
   fetch(`${BASE}/dashboard`).then(r => r.json())
 

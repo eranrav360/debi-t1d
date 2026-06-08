@@ -592,6 +592,95 @@ def _calc_stats():
         'consecutive_morning_hypos': consecutive_hypos
     }
 
+# --- Report API ---
+
+@app.route('/api/report', methods=['GET'])
+def get_report():
+    from_date = request.args.get('from', '').strip()
+    to_date   = request.args.get('to',   '').strip()
+    if not from_date or not to_date:
+        return jsonify({'error': 'from and to dates required'}), 400
+
+    from_dt = from_date + ' 00:00'
+    to_dt   = to_date   + ' 23:59'
+    events  = []
+
+    with get_conn() as conn:
+        # ── Novorapid injections ──────────────────────────────────────────────
+        novo = rows(conn.execute(text("""
+            SELECT * FROM novorapid_records
+            WHERE recorded_at >= :from_dt AND recorded_at <= :to_dt
+            ORDER BY recorded_at
+        """), {'from_dt': from_dt, 'to_dt': to_dt}))
+
+        # Fetch all meal items for these records via a JOIN (avoids IN clause)
+        items_res = rows(conn.execute(text("""
+            SELECT m.record_id, m.food_name
+            FROM meal_items m
+            JOIN novorapid_records n ON n.id = m.record_id
+            WHERE n.recorded_at >= :from_dt AND n.recorded_at <= :to_dt
+        """), {'from_dt': from_dt, 'to_dt': to_dt}))
+
+        items_map = {}
+        for item in items_res:
+            items_map.setdefault(item['record_id'], []).append(item['food_name'])
+
+        for r in novo:
+            dt      = str(r['recorded_at'])
+            parts   = []
+            foods   = items_map.get(r['id'], [])
+            if foods:              parts.append(', '.join(foods))
+            if r.get('notes'):     parts.append(r['notes'])
+            carbs   = float(r.get('total_carbs') or 0)
+            ev_type = 'ארוחה + הזרקה' if carbs > 0 else 'הזרקת נובורפיד'
+            if carbs > 0:          parts.insert(0, f'{carbs:.0f}ג׳ פחמימות')
+            events.append({
+                'date':    dt[:10],
+                'time':    dt[11:16] if len(dt) > 10 else '',
+                'type':    ev_type,
+                'sugar':   r.get('pre_sugar'),
+                'dose':    r.get('dose_given'),
+                'content': ' · '.join(p for p in parts if p),
+            })
+
+        # ── Tregludec ─────────────────────────────────────────────────────────
+        for r in rows(conn.execute(text("""
+            SELECT * FROM tregludec_records
+            WHERE recorded_date >= :fd AND recorded_date <= :td
+            ORDER BY recorded_date
+        """), {'fd': from_date, 'td': to_date})):
+            events.append({
+                'date':    str(r['recorded_date'])[:10],
+                'time':    '',
+                'type':    'טרגלודק',
+                'sugar':   None,
+                'dose':    r.get('dose'),
+                'content': r.get('notes', ''),
+            })
+
+        # ── Free meals ────────────────────────────────────────────────────────
+        for r in rows(conn.execute(text("""
+            SELECT * FROM free_meals
+            WHERE recorded_at >= :from_dt AND recorded_at <= :to_dt
+            ORDER BY recorded_at
+        """), {'from_dt': from_dt, 'to_dt': to_dt})):
+            dt    = str(r['recorded_at'])
+            carbs = float(r.get('carbs') or 0)
+            parts = []
+            if carbs > 0:       parts.append(f'{carbs:.0f}ג׳ פחמימות')
+            if r.get('notes'):  parts.append(r['notes'])
+            events.append({
+                'date':    dt[:10],
+                'time':    dt[11:16] if len(dt) > 10 else '',
+                'type':    'ארוחה חופשית',
+                'sugar':   r.get('pre_sugar'),
+                'dose':    None,
+                'content': ' · '.join(p for p in parts if p),
+            })
+
+    events.sort(key=lambda e: (e['date'], e['time'] or ''))
+    return jsonify({'events': events, 'from': from_date, 'to': to_date, 'count': len(events)})
+
 # --- Pen records API ---
 
 @app.route('/api/pens', methods=['GET'])

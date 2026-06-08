@@ -11,6 +11,7 @@ import AlertAdmin       from './pages/AlertAdmin'
 import More             from './pages/More'
 import SettingsPage     from './pages/SettingsPage'
 import PenPage          from './pages/PenPage'
+import ReportPage       from './pages/ReportPage'
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="/more"       element={<More />} />
         <Route path="/settings"   element={<SettingsPage />} />
         <Route path="/pens"       element={<PenPage />} />
+        <Route path="/report"     element={<ReportPage />} />
       </Routes>
     </BrowserRouter>
   )

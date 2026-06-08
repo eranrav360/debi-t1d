@@ -1,13 +1,14 @@
 import { useNavigate } from 'react-router-dom'
 import { TabBar } from '../components/Bits'
-import { IconSyringe, IconMeal, IconBell, IconStats, IconChev, IconGear } from '../components/Icons'
+import { IconSyringe, IconMeal, IconBell, IconStats, IconChev, IconGear, IconDoc } from '../components/Icons'
 
 const ITEMS = [
-  { icon: IconSyringe, label: 'רישום הזרקה',       sub: 'נובורפיד או טרגלודק',    route: '/injection', tint: 'var(--good-soft)',  color: 'var(--good)' },
-  { icon: IconMeal,    label: 'ארוחה ללא הזרקה',   sub: 'ארוחה חופשית עם מדידה',  route: '/free-meal', tint: 'var(--brand-tint)', color: 'var(--brand)' },
-  { icon: IconStats,   label: 'מאגר מזון',          sub: 'חפש, הוסף ועדכן פריטים', route: '/foods',     tint: 'var(--warn-soft)',  color: 'var(--warn)' },
-  { icon: IconBell,    label: 'ניהול התראות',       sub: 'WhatsApp · קבוצת שניידר', route: '/alerts',   tint: 'var(--cold-soft)',  color: 'var(--cold)' },
-  { icon: IconGear,    label: 'הגדרות מינון',       sub: 'ICR · ISF · ערכי עקיפה',  route: '/settings', tint: 'var(--bg-warm)',    color: 'var(--ink-2)' },
+  { icon: IconSyringe, label: 'רישום הזרקה',       sub: 'נובורפיד או טרגלודק',      route: '/injection', tint: 'var(--good-soft)',  color: 'var(--good)' },
+  { icon: IconMeal,    label: 'ארוחה ללא הזרקה',   sub: 'ארוחה חופשית עם מדידה',    route: '/free-meal', tint: 'var(--brand-tint)', color: 'var(--brand)' },
+  { icon: IconDoc,     label: 'דוח תקופתי',         sub: 'ייצוא אירועים ל-PDF',       route: '/report',    tint: '#EEF2FF',           color: '#4338CA' },
+  { icon: IconStats,   label: 'מאגר מזון',          sub: 'חפש, הוסף ועדכן פריטים',   route: '/foods',     tint: 'var(--warn-soft)',  color: 'var(--warn)' },
+  { icon: IconBell,    label: 'ניהול התראות',       sub: 'WhatsApp · קבוצת שניידר',  route: '/alerts',    tint: 'var(--cold-soft)',  color: 'var(--cold)' },
+  { icon: IconGear,    label: 'הגדרות מינון',       sub: 'ICR · ISF · ערכי עקיפה',   route: '/settings',  tint: 'var(--bg-warm)',    color: 'var(--ink-2)' },
 ]
 
 export default function More() {
