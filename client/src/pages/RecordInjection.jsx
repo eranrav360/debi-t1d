@@ -24,13 +24,15 @@ export default function RecordInjection() {
   const [type, setType] = useState('novorapid')
 
   // NovoRapid fields
-  const [preSugar, setPreSugar] = useState('')
-  const [dose, setDose] = useState('')
-  const [notes, setNotes] = useState('')
-  const [recordedAt, setRecordedAt] = useState(nowLocal())
-  const [saved, setSaved] = useState(null)
-  const [postSugar, setPostSugar] = useState('')
-  const [postUpdated, setPostUpdated] = useState(false)
+  const [preSugar,         setPreSugar]         = useState('')
+  const [dose,             setDose]             = useState('')
+  const [notes,            setNotes]            = useState('')
+  const [recordedAt,       setRecordedAt]       = useState(nowLocal())
+  const [saved,            setSaved]            = useState(null)
+  const [postSugar,        setPostSugar]        = useState('')
+  const [postUpdated,      setPostUpdated]      = useState(false)
+  const [isNovoPast,       setIsNovoPast]       = useState(false)
+  const [novoGlucLoading,  setNovoGlucLoading]  = useState(false)
 
   // Tregludec fields
   const [tregDose,        setTregDose]        = useState('')
@@ -44,6 +46,18 @@ export default function RecordInjection() {
   const [glucoseLoading,  setGlucoseLoading]  = useState(false)
 
   const [saving, setSaving] = useState(false)
+
+  // Auto-fetch current glucose when novorapid tab is opened
+  useEffect(() => {
+    if (type !== 'novorapid') return
+    setRecordedAt(nowLocal())
+    setNovoGlucLoading(true)
+    fetch(`${GLUC_BASE}/latest`)
+      .then(r => r.json())
+      .then(d => { if (d.reading?.value) setPreSugar(String(d.reading.value)) })
+      .catch(() => {})
+      .finally(() => setNovoGlucLoading(false))
+  }, [type])
 
   // Auto-fetch current glucose + last dose when tregludec tab is opened
   useEffect(() => {
@@ -61,11 +75,11 @@ export default function RecordInjection() {
   }, [type])
 
   async function handleRecordNovo() {
-    if (!dose || !preSugar || saving) return
+    if (!dose || saving) return
     setSaving(true)
     const result = await recordNovorapid({
       total_carbs: 0,
-      pre_sugar: parseInt(preSugar),
+      pre_sugar: preSugar ? parseInt(preSugar) : null,
       dose_given: parseFloat(dose),
       notes,
       meal_items: [],
@@ -90,6 +104,7 @@ export default function RecordInjection() {
     setNotes('')
     setPostSugar('')
     setRecordedAt(nowLocal())
+    setIsNovoPast(false)
   }
 
   async function handleRecordTreg() {
@@ -141,51 +156,95 @@ export default function RecordInjection() {
 
         {type === 'novorapid' && !saved && (
           <>
-            <div className="form-group">
-              <label>תאריך ושעה</label>
-              <input
-                type="datetime-local"
-                value={recordedAt}
-                onChange={e => setRecordedAt(e.target.value)}
-                className="input"
-              />
-            </div>
-            <div className="form-group">
-              <label>סוכר לפני הזרקה (mg/dL)</label>
-              <input
-                type="number"
-                value={preSugar}
-                onChange={e => setPreSugar(e.target.value)}
-                placeholder="לדוג' 150"
-                className="input"
-              />
-            </div>
+            {/* ── Auto-captured values ── */}
+            {!isNovoPast && (
+              <div style={{
+                display: 'flex', gap: 10, marginBottom: 14,
+                padding: '12px 14px', background: 'var(--bg-warm)',
+                borderRadius: 12, border: '1px solid var(--hair)',
+              }}>
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 2 }}>סוכר נוכחי</div>
+                  {novoGlucLoading ? (
+                    <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>…</div>
+                  ) : preSugar ? (
+                    <>
+                      <div style={{ fontSize: 26, fontWeight: 800, lineHeight: 1, color: GL.color(parseInt(preSugar)) }}>
+                        {preSugar}
+                      </div>
+                      <div style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 1 }}>mg/dL</div>
+                    </>
+                  ) : (
+                    <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>לא זמין</div>
+                  )}
+                </div>
+                <div style={{ width: 1, background: 'var(--hair)' }}/>
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 2 }}>שעה</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, lineHeight: 1, fontFamily: 'monospace' }}>
+                    {recordedAt.slice(11, 16)}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 1 }}>{recordedAt.slice(0, 10)}</div>
+                </div>
+              </div>
+            )}
+
+            {/* ── Past injection toggle ── */}
+            <button
+              onClick={() => {
+                setIsNovoPast(v => !v)
+                if (!isNovoPast) {
+                  setPreSugar('')
+                  setRecordedAt(nowLocal())
+                }
+              }}
+              style={{
+                width: '100%', marginBottom: 14,
+                border: `1px solid ${isNovoPast ? 'var(--brand)' : 'var(--hair)'}`,
+                background: isNovoPast ? 'var(--brand-tint)' : 'transparent',
+                borderRadius: 10, padding: '9px 14px',
+                fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
+                color: isNovoPast ? 'var(--brand-deep)' : 'var(--ink-3)',
+                cursor: 'pointer', textAlign: 'right', transition: 'all .15s',
+              }}
+            >
+              ⏰ {isNovoPast ? '✓ הזרקה קודמת — ערוך ידנית' : 'הזרקה קודמת? לחצי לשינוי שעה / סוכר'}
+            </button>
+
+            {/* ── Past injection fields ── */}
+            {isNovoPast && (
+              <>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 4 }}>
+                  <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                    <label>תאריך ושעה</label>
+                    <input type="datetime-local" value={recordedAt}
+                           onChange={e => setRecordedAt(e.target.value)} className="input"/>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>סוכר לפני הזרקה (mg/dL)</label>
+                  <input type="number" value={preSugar} onChange={e => setPreSugar(e.target.value)}
+                         placeholder="לדוג׳ 150" className="input"/>
+                </div>
+              </>
+            )}
+
+            {/* ── Dose ── */}
             <div className="form-group">
               <label>מינון (יחידות)</label>
-              <input
-                type="number"
-                step="0.5"
-                value={dose}
-                onChange={e => setDose(e.target.value)}
-                placeholder="לדוג' 3"
-                className="input"
-              />
+              <input type="number" step="0.5" value={dose} onChange={e => setDose(e.target.value)}
+                     placeholder="לדוג׳ 3" className="input"/>
             </div>
+
+            {/* ── What to eat ── */}
             <div className="form-group">
-              <label>הערות (אופציונלי)</label>
-              <input
-                type="text"
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                placeholder="לדוג' תיקון בצום"
-                className="input"
-              />
+              <label>מה מתוכנן לאכול</label>
+              <input type="text" value={notes} onChange={e => setNotes(e.target.value)}
+                     placeholder="לדוג׳ לחם, סלט, קוטג׳..." className="input"/>
             </div>
-            <button
-              onClick={handleRecordNovo}
-              disabled={!preSugar || !dose || saving}
-              className="btn btn-primary btn-full"
-            >
+
+            <button onClick={handleRecordNovo} disabled={!dose || saving}
+                    className="btn btn-primary btn-full">
               {saving ? 'שומר...' : 'רשום הזרקת נובורפיד'}
             </button>
           </>
