@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { recordNovorapid, recordTregludec, updatePostSugar } from '../api'
+import { recordNovorapid, recordTregludec, updatePostSugar, getTregludecHistory } from '../api'
 import { ScreenShell } from '../components/ScreenShell'
 import { GL } from '../components/Bits'
 
@@ -45,15 +45,19 @@ export default function RecordInjection() {
 
   const [saving, setSaving] = useState(false)
 
-  // Auto-fetch current glucose when tregludec tab is opened
+  // Auto-fetch current glucose + last dose when tregludec tab is opened
   useEffect(() => {
     if (type !== 'tregludec') return
     setGlucoseLoading(true)
-    fetch(`${GLUC_BASE}/latest`)
-      .then(r => r.json())
-      .then(d => { if (d.reading?.value) setTregSugar(String(d.reading.value)) })
-      .catch(() => {})
-      .finally(() => setGlucoseLoading(false))
+    Promise.all([
+      fetch(`${GLUC_BASE}/latest`).then(r => r.json()).catch(() => null),
+      getTregludecHistory().catch(() => []),
+    ]).then(([gluc, history]) => {
+      if (gluc?.reading?.value) setTregSugar(String(gluc.reading.value))
+      if (Array.isArray(history) && history.length > 0 && history[0].dose) {
+        setTregDose(String(history[0].dose))
+      }
+    }).finally(() => setGlucoseLoading(false))
   }, [type])
 
   async function handleRecordNovo() {
