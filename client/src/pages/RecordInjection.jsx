@@ -1,6 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { recordNovorapid, recordTregludec, updatePostSugar } from '../api'
 import { ScreenShell } from '../components/ScreenShell'
+import { GL } from '../components/Bits'
+
+const GLUC_BASE = (import.meta.env.VITE_API_URL || '') + '/api/glucose'
 
 function nowLocal() {
   const d = new Date()
@@ -10,6 +13,11 @@ function nowLocal() {
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10)
+}
+
+function nowTimeStr() {
+  const d = new Date()
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
 }
 
 export default function RecordInjection() {
@@ -25,13 +33,28 @@ export default function RecordInjection() {
   const [postUpdated, setPostUpdated] = useState(false)
 
   // Tregludec fields
-  const [tregDose, setTregDose] = useState('')
-  const [tregNotes, setTregNotes] = useState('')
-  const [tregDate, setTregDate] = useState(todayISO())
-  const [tregSaved, setTregSaved] = useState(false)
-  const [hadHypo, setHadHypo] = useState(false)
+  const [tregDose,        setTregDose]        = useState('')
+  const [tregNotes,       setTregNotes]       = useState('')
+  const [tregDate,        setTregDate]        = useState(todayISO())
+  const [tregTime,        setTregTime]        = useState(nowTimeStr())
+  const [tregSugar,       setTregSugar]       = useState('')
+  const [tregSaved,       setTregSaved]       = useState(false)
+  const [hadHypo,         setHadHypo]         = useState(false)
+  const [isPast,          setIsPast]          = useState(false)   // "הזרקה קודמת" mode
+  const [glucoseLoading,  setGlucoseLoading]  = useState(false)
 
   const [saving, setSaving] = useState(false)
+
+  // Auto-fetch current glucose when tregludec tab is opened
+  useEffect(() => {
+    if (type !== 'tregludec') return
+    setGlucoseLoading(true)
+    fetch(`${GLUC_BASE}/latest`)
+      .then(r => r.json())
+      .then(d => { if (d.reading?.value) setTregSugar(String(d.reading.value)) })
+      .catch(() => {})
+      .finally(() => setGlucoseLoading(false))
+  }, [type])
 
   async function handleRecordNovo() {
     if (!dose || !preSugar || saving) return
@@ -72,7 +95,9 @@ export default function RecordInjection() {
       dose: parseFloat(tregDose),
       notes: tregNotes,
       recorded_date: tregDate,
-      had_hypo_morning: hadHypo
+      recorded_time: tregTime,
+      pre_sugar: tregSugar ? parseInt(tregSugar) : null,
+      had_hypo_morning: hadHypo,
     })
     setTregSaved(true)
     setSaving(false)
@@ -83,7 +108,10 @@ export default function RecordInjection() {
     setTregDose('')
     setTregNotes('')
     setTregDate(todayISO())
+    setTregTime(nowTimeStr())
     setHadHypo(false)
+    setIsPast(false)
+    // keep tregSugar as-is (current glucose still relevant)
   }
 
   return (
@@ -194,51 +222,111 @@ export default function RecordInjection() {
 
         {type === 'tregludec' && !tregSaved && (
           <>
-            <div className="alert alert-info" style={{ marginBottom: 12 }}>
-              💡 טרגלודק הוא אינסולין ארוך-טווח. ניתן פעם ביום, בדרך כלל בשעה קבועה.
-            </div>
-            <div className="form-group">
-              <label>תאריך</label>
-              <input
-                type="date"
-                value={tregDate}
-                onChange={e => setTregDate(e.target.value)}
-                className="input"
-              />
-            </div>
+            {/* ── Auto-captured values ── */}
+            {!isPast && (
+              <div style={{
+                display: 'flex', gap: 10, marginBottom: 14,
+                padding: '12px 14px', background: 'var(--bg-warm)',
+                borderRadius: 12, border: '1px solid var(--hair)',
+              }}>
+                {/* Current sugar */}
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 2 }}>סוכר נוכחי</div>
+                  {glucoseLoading ? (
+                    <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>…</div>
+                  ) : tregSugar ? (
+                    <>
+                      <div style={{ fontSize: 26, fontWeight: 800, lineHeight: 1, color: GL.color(parseInt(tregSugar)) }}>
+                        {tregSugar}
+                      </div>
+                      <div style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 1 }}>mg/dL</div>
+                    </>
+                  ) : (
+                    <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>לא זמין</div>
+                  )}
+                </div>
+                <div style={{ width: 1, background: 'var(--hair)' }}/>
+                {/* Current time */}
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 2 }}>שעה</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, lineHeight: 1, fontFamily: 'monospace' }}>
+                    {tregTime}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 1 }}>{tregDate}</div>
+                </div>
+              </div>
+            )}
+
+            {/* ── Past injection toggle ── */}
+            <button
+              onClick={() => {
+                setIsPast(v => !v)
+                if (!isPast) {
+                  // switching to past mode — clear auto values so user fills them
+                  setTregDate(todayISO())
+                  setTregTime('')
+                  setTregSugar('')
+                }
+              }}
+              style={{
+                width: '100%', marginBottom: 14,
+                border: `1px solid ${isPast ? 'var(--brand)' : 'var(--hair)'}`,
+                background: isPast ? 'var(--brand-tint)' : 'transparent',
+                borderRadius: 10, padding: '9px 14px',
+                fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
+                color: isPast ? 'var(--brand-deep)' : 'var(--ink-3)',
+                cursor: 'pointer', textAlign: 'right', transition: 'all .15s',
+              }}
+            >
+              ⏰ {isPast ? '✓ הזרקה קודמת — ערוך ידנית' : 'הזרקה קודמת? לחצי לשינוי שעה / סוכר'}
+            </button>
+
+            {/* ── Past injection fields ── */}
+            {isPast && (
+              <>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 4 }}>
+                  <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                    <label>תאריך</label>
+                    <input type="date" value={tregDate} onChange={e => setTregDate(e.target.value)} className="input"/>
+                  </div>
+                  <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                    <label>שעה</label>
+                    <input type="time" value={tregTime} onChange={e => setTregTime(e.target.value)} className="input"/>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>סוכר בזמן ההזרקה (mg/dL)</label>
+                  <input type="number" value={tregSugar} onChange={e => setTregSugar(e.target.value)}
+                         placeholder="לדוג׳ 145" className="input"/>
+                </div>
+              </>
+            )}
+
+            {/* ── Dose ── */}
             <div className="form-group">
               <label>מינון יומי (יחידות)</label>
-              <input
-                type="number"
-                step="0.5"
-                value={tregDose}
-                onChange={e => setTregDose(e.target.value)}
-                placeholder="לדוג' 10"
-                className="input"
-              />
+              <input type="number" step="0.5" value={tregDose}
+                     onChange={e => setTregDose(e.target.value)}
+                     placeholder="לדוג׳ 10" className="input"/>
             </div>
+
+            {/* ── Notes ── */}
             <div className="form-group">
               <label>הערות (אופציונלי)</label>
-              <input
-                type="text"
-                value={tregNotes}
-                onChange={e => setTregNotes(e.target.value)}
-                className="input"
-              />
+              <input type="text" value={tregNotes}
+                     onChange={e => setTregNotes(e.target.value)} className="input"/>
             </div>
+
+            {/* ── Hypo checkbox ── */}
             <label style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
               background: hadHypo ? '#FEF3C7' : 'var(--gray-50)',
               borderRadius: 10, marginBottom: 12, cursor: 'pointer',
               border: `1px solid ${hadHypo ? '#F59E0B' : 'var(--gray-200)'}`,
-              transition: 'all 0.15s'
+              transition: 'all 0.15s',
             }}>
-              <input
-                type="checkbox"
-                checked={hadHypo}
-                onChange={e => setHadHypo(e.target.checked)}
-                style={{ width: 18, height: 18, cursor: 'pointer' }}
-              />
+              <input type="checkbox" checked={hadHypo} onChange={e => setHadHypo(e.target.checked)}
+                     style={{ width: 18, height: 18, cursor: 'pointer' }}/>
               <span style={{ fontSize: 14 }}>
                 ⚠️ <strong>היפוגליקמיה הבוקר</strong>
                 <span style={{ fontSize: 12, color: 'var(--gray-500)', display: 'block', marginTop: 2 }}>
@@ -246,11 +334,9 @@ export default function RecordInjection() {
                 </span>
               </span>
             </label>
-            <button
-              onClick={handleRecordTreg}
-              disabled={!tregDose || saving}
-              className="btn btn-primary btn-full"
-            >
+
+            <button onClick={handleRecordTreg} disabled={!tregDose || saving}
+                    className="btn btn-primary btn-full">
               {saving ? 'שומר...' : 'רשום הזרקת טרגלודק'}
             </button>
           </>

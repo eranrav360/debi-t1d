@@ -126,15 +126,23 @@ def init_db():
     with get_conn() as conn:
         for ddl in ddl_templates:
             conn.execute(text(ddl.format(PK=pk)))
-        # Migration: add had_hypo_morning to tregludec_records (may already exist)
-        try:
-            if IS_PG:
-                conn.execute(text('ALTER TABLE tregludec_records ADD COLUMN IF NOT EXISTS had_hypo_morning INTEGER DEFAULT NULL'))
-            else:
-                conn.execute(text('ALTER TABLE tregludec_records ADD COLUMN had_hypo_morning INTEGER DEFAULT NULL'))
-            conn.commit()
-        except Exception:
-            pass  # column already exists
+        # Migrations (safe — IF NOT EXISTS / try-except)
+        migrations_pg = [
+            'ALTER TABLE tregludec_records ADD COLUMN IF NOT EXISTS had_hypo_morning INTEGER DEFAULT NULL',
+            'ALTER TABLE tregludec_records ADD COLUMN IF NOT EXISTS recorded_time TEXT DEFAULT NULL',
+            'ALTER TABLE tregludec_records ADD COLUMN IF NOT EXISTS pre_sugar INTEGER DEFAULT NULL',
+        ]
+        migrations_sqlite = [
+            'ALTER TABLE tregludec_records ADD COLUMN had_hypo_morning INTEGER DEFAULT NULL',
+            'ALTER TABLE tregludec_records ADD COLUMN recorded_time TEXT DEFAULT NULL',
+            'ALTER TABLE tregludec_records ADD COLUMN pre_sugar INTEGER DEFAULT NULL',
+        ]
+        for sql in (migrations_pg if IS_PG else migrations_sqlite):
+            try:
+                conn.execute(text(sql))
+                conn.commit()
+            except Exception:
+                pass  # column already exists
         count = conn.execute(text('SELECT COUNT(*) FROM foods')).scalar()
         if count == 0:
             foods_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'foods.json')
@@ -280,19 +288,26 @@ def list_tregludec():
 
 @app.route('/api/tregludec', methods=['POST'])
 def add_tregludec():
-    d = request.json
-    hypo = d.get('had_hypo_morning')
-    hypo_val = 1 if hypo else (0 if hypo is False else None)
-    dose = float(d['dose'])
-    notes = d.get('notes', '')
+    d         = request.json
+    hypo      = d.get('had_hypo_morning')
+    hypo_val  = 1 if hypo else (0 if hypo is False else None)
+    dose      = float(d['dose'])
+    notes     = d.get('notes', '').strip()
+    rec_date  = d.get('recorded_date') or date.today().isoformat()
+    rec_time  = d.get('recorded_time') or datetime.now().strftime('%H:%M')
+    pre_sugar = int(d['pre_sugar']) if d.get('pre_sugar') else None
     with get_conn() as conn:
         db_insert(conn,
-            'INSERT INTO tregludec_records (recorded_date, dose, notes, had_hypo_morning) VALUES (:d, :dose, :notes, :hypo)',
-            {'d': d.get('recorded_date', date.today().isoformat()),
-             'dose': dose, 'notes': notes, 'hypo': hypo_val}
+            '''INSERT INTO tregludec_records
+               (recorded_date, dose, notes, had_hypo_morning, recorded_time, pre_sugar)
+               VALUES (:d, :dose, :notes, :hypo, :rt, :ps)''',
+            {'d': rec_date, 'dose': dose, 'notes': notes,
+             'hypo': hypo_val, 'rt': rec_time, 'ps': pre_sugar}
         )
     lines = [f'💉 *טרגלודק* — {dose:.0f} יחידות']
-    if notes: lines.append(f'הערות: {notes}')
+    lines.append(f'📅 {rec_date}  🕐 {rec_time}')
+    if pre_sugar: lines.append(f'סוכר: {pre_sugar} mg/dL')
+    if notes:     lines.append(f'הערות: {notes}')
     send_whatsapp('\n'.join(lines))
     return jsonify({'status': 'ok'})
 
@@ -647,13 +662,13 @@ def get_report():
         for r in rows(conn.execute(text("""
             SELECT * FROM tregludec_records
             WHERE recorded_date >= :fd AND recorded_date <= :td
-            ORDER BY recorded_date
+            ORDER BY recorded_date, COALESCE(recorded_time, '')
         """), {'fd': from_date, 'td': to_date})):
             events.append({
                 'date':    str(r['recorded_date'])[:10],
-                'time':    '',
+                'time':    str(r.get('recorded_time') or ''),
                 'type':    'טרגלודק',
-                'sugar':   None,
+                'sugar':   r.get('pre_sugar'),
                 'dose':    r.get('dose'),
                 'content': r.get('notes', ''),
             })

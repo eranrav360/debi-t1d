@@ -210,6 +210,23 @@ body {
 .tab.is-active { color: var(--brand); }
 .tab svg { display: block; }
 
+/* ── Landscape: compact tab bar, hide labels ── */
+@media (orientation: landscape) and (max-height: 520px) {
+  .tabbar {
+    height: 44px;
+    bottom: 6px;
+    left: 8px;
+    right: 8px;
+    border-radius: 14px;
+  }
+  .tab {
+    padding: 4px 0;
+    gap: 0;
+    font-size: 0; /* hides label text without layout shift */
+  }
+  .tab svg { width: 20px; height: 20px; }
+}
+
 /* ═══════════════════════════════════════════════════════════
    ASK DEBI
 ═══════════════════════════════════════════════════════════ */
