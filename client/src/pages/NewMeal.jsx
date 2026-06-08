@@ -405,7 +405,7 @@ export default function NewMeal() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <button className="btn btn-brand" style={{ width: '100%', padding: 16, fontSize: 16 }}
                     onClick={goToStep2} disabled={carbs <= 0 && presugar <= 0}>
-              💉 המשך · חישוב מנה
+              💉 חישוב כמה להזריק
             </button>
             {carbs > 0 && (
               <button className="btn" style={{
