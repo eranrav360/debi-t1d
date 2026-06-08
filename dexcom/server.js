@@ -310,6 +310,64 @@ Return JSON only, no markdown: {"code":"BATCH_CODE","pen_type":"novorapid|treglu
   }
 });
 
+// ─── Free-text carb estimation ───────────────────────────────────────────────
+
+app.post('/api/glucose/text-carbs', async (req, res) => {
+  const { text } = req.body || {};
+  if (!text || !String(text).trim()) return res.status(400).json({ error: 'text required' });
+
+  const apiKey = process.env.GROK_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'GROK_API_KEY not set' });
+
+  try {
+    const grokRes = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'grok-3-mini-fast',
+        messages: [
+          {
+            role: 'system',
+            content: `אתה מומחה תזונה המתמחה בסוכרת סוג 1.
+קיבלת תיאור טקסטואלי של ארוחה. העריך את סך הפחמימות והחזר JSON בלבד (ללא markdown):
+{"foods":["שם מזון"],"carbs":NUMBER,"confidence":"high|medium|low","note":"הסבר קצר"}
+- foods: רשימת רכיבי הארוחה בעברית
+- carbs: סך הפחמימות בגרמים (מספר שלם)
+- confidence: high=מנות ברורות, medium=הערכה סבירה, low=מידע חסר
+- note: הסבר קצר לחישוב (אופציונלי, השמט אם לא צריך)`,
+          },
+          { role: 'user', content: `ארוחה: ${text}` },
+        ],
+        temperature: 0.1,
+      }),
+    });
+
+    if (!grokRes.ok) {
+      const detail = await grokRes.text();
+      console.error('[dexcom-server] text-carbs API error:', grokRes.status, detail);
+      return res.status(502).json({ error: 'Grok API error' });
+    }
+
+    const data = await grokRes.json();
+    const raw  = data.choices?.[0]?.message?.content?.trim() || '{}';
+    const json = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    let parsed;
+    try { parsed = JSON.parse(json); } catch {
+      parsed = { foods: [], carbs: 0, confidence: 'low', note: 'לא הצלחתי לנתח' };
+    }
+
+    res.json({
+      foods:      Array.isArray(parsed.foods) ? parsed.foods : [],
+      carbs:      typeof parsed.carbs === 'number' ? Math.round(parsed.carbs) : 0,
+      confidence: parsed.confidence || 'medium',
+      note:       parsed.note || null,
+    });
+  } catch (err) {
+    console.error('[dexcom-server] /text-carbs error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Debi AI chat (Grok) ──────────────────────────────────────────────────────
 
 app.post('/api/glucose/chat', async (req, res) => {

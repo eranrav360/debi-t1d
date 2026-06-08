@@ -88,6 +88,7 @@ export const testAlertRule = (id) =>
 
 export const askDebi    = (message, context, history = []) => post(`${GLUCOSE}/chat`, { message, context, history })
 export const analyzeFood = (image)   => post(`${GLUCOSE}/vision`, { image, mimeType: 'image/jpeg' })
+export const textCarbs   = (text)    => post(`${GLUCOSE}/text-carbs`, { text })
 export const ocrPen      = (image)   => post(`${GLUCOSE}/ocr-pen`, { image, mimeType: 'image/jpeg' })
 
 // ── Pen records ───────────────────────────────────────────────────────────────

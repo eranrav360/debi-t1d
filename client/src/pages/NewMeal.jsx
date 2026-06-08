@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getFoods, getRecommendation, recordNovorapid } from '../api'
+import { getFoods, getRecommendation, recordNovorapid, textCarbs } from '../api'
 import { GL } from '../components/Bits'
 import { IconCheck, IconArrow, IconCamera, IconChev } from '../components/Icons'
 import { TabBar } from '../components/Bits'
@@ -30,6 +30,12 @@ export default function NewMeal() {
   const [doseGiven, setDoseGiven] = useState(0)
   const [saving,    setSaving]    = useState(false)
   const [savedId,   setSavedId]   = useState(null)
+
+  // Text input mode
+  const [showText,      setShowText]      = useState(false)
+  const [textInput,     setTextInput]     = useState('')
+  const [textAnalyzing, setTextAnalyzing] = useState(false)
+  const [textResult,    setTextResult]    = useState(null)
 
   // Food search
   const [query,      setQuery]      = useState('')
@@ -73,6 +79,29 @@ export default function NewMeal() {
     setResults([])
     setQuery('')
     setShowSearch(false)
+  }
+
+  async function analyzeText() {
+    if (!textInput.trim() || textAnalyzing) return
+    setTextAnalyzing(true)
+    setTextResult(null)
+    try {
+      const r = await textCarbs(textInput)
+      if (r.carbs > 0) {
+        setCarbs(r.carbs)
+        const foods = r.foods || []
+        const carbEach = foods.length > 0 ? Math.round((r.carbs / foods.length) * 10) / 10 : r.carbs
+        const items = foods.length > 0
+          ? foods.map(name => ({ food_id: null, food_name: name, weight_g: 0, carbs: carbEach }))
+          : [{ food_id: null, food_name: textInput, weight_g: 0, carbs: r.carbs }]
+        setMealItems(items)
+      }
+      setTextResult(r)
+    } catch {
+      setTextResult({ carbs: 0, confidence: 'low', note: 'שגיאה בחישוב' })
+    } finally {
+      setTextAnalyzing(false)
+    }
   }
 
   async function goToStep2() {
@@ -134,6 +163,82 @@ export default function NewMeal() {
               <span className="muted" style={{ fontSize: 12 }}>זיהוי פחמימות אוטומטי · בטא</span>
             </div>
             <span style={{ fontSize: 10, fontWeight: 700, background: 'var(--ink)', color: '#fff', padding: '2px 6px', borderRadius: 999 }}>BETA</span>
+          </div>
+
+          {/* Free-text card */}
+          <div className="card" style={{ padding: 0, overflow: 'hidden', border: showText ? '1.5px solid var(--brand-soft)' : undefined }}>
+            <div onClick={() => setShowText(s => !s)} style={{
+              padding: 14, display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer',
+            }}>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--bg-warm)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+                ✏️
+              </div>
+              <div className="col" style={{ flex: 1, gap: 1 }}>
+                <span style={{ fontSize: 14, fontWeight: 700 }}>הקלד מה אכלת</span>
+                <span className="muted" style={{ fontSize: 12 }}>תיאור חופשי · חישוב פחמימות אוטומטי</span>
+              </div>
+              <span style={{ fontSize: 18, color: 'var(--ink-3)', transition: 'transform .2s', transform: showText ? 'rotate(180deg)' : 'none' }}>⌄</span>
+            </div>
+
+            {showText && (
+              <div style={{ padding: '0 14px 14px', borderTop: '1px solid var(--hair)' }}>
+                <textarea
+                  value={textInput}
+                  onChange={e => { setTextInput(e.target.value); setTextResult(null) }}
+                  placeholder="לדוג׳: 2 פרוסות לחם, סלט ירקות, 100 גרם קוטג׳, כוס מיץ תפוזים..."
+                  rows={3}
+                  style={{
+                    width: '100%', marginTop: 10, padding: '10px 12px',
+                    border: '1.5px solid var(--hair)', borderRadius: 12,
+                    fontFamily: 'inherit', fontSize: 14, resize: 'none',
+                    background: 'var(--bg)', color: 'var(--ink)', outline: 'none',
+                    boxSizing: 'border-box', direction: 'rtl',
+                  }}
+                />
+
+                {/* Result badge */}
+                {textResult && (
+                  <div style={{
+                    marginTop: 10, padding: '10px 14px', borderRadius: 12,
+                    background: textResult.carbs > 0 ? 'var(--good-soft)' : 'var(--warn-soft)',
+                    border: `1px solid ${textResult.carbs > 0 ? 'var(--good)' : 'var(--warn)'}`,
+                  }}>
+                    {textResult.carbs > 0 ? (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--good-deep)' }}>
+                            {textResult.foods?.join(' · ')}
+                          </span>
+                          {textResult.note && (
+                            <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 2 }}>{textResult.note}</div>
+                          )}
+                        </div>
+                        <div style={{ textAlign: 'center', marginRight: 12 }}>
+                          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--brand-deep)', lineHeight: 1 }}>{textResult.carbs}</div>
+                          <div style={{ fontSize: 10, color: 'var(--ink-3)' }}>גרם פחמ׳</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: 13, color: 'var(--warn-deep)' }}>{textResult.note || 'לא הצלחתי לחשב פחמימות'}</span>
+                    )}
+                  </div>
+                )}
+
+                <button
+                  onClick={analyzeText}
+                  disabled={!textInput.trim() || textAnalyzing}
+                  style={{
+                    marginTop: 10, width: '100%', padding: '11px 0',
+                    border: 'none', borderRadius: 12, fontFamily: 'inherit',
+                    fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                    background: 'var(--brand)', color: '#fff',
+                    opacity: (!textInput.trim() || textAnalyzing) ? 0.5 : 1,
+                  }}
+                >
+                  {textAnalyzing ? '⏳ מחשב...' : '🤖 חשב פחמימות'}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Big carb input */}
