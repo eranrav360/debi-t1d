@@ -224,19 +224,6 @@ export default function NewMeal() {
                   </div>
                 )}
 
-                <button
-                  onClick={analyzeText}
-                  disabled={!textInput.trim() || textAnalyzing}
-                  style={{
-                    marginTop: 10, width: '100%', padding: '11px 0',
-                    border: 'none', borderRadius: 12, fontFamily: 'inherit',
-                    fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                    background: 'var(--brand)', color: '#fff',
-                    opacity: (!textInput.trim() || textAnalyzing) ? 0.5 : 1,
-                  }}
-                >
-                  {textAnalyzing ? '⏳ מחשב...' : '🤖 חשב פחמימות'}
-                </button>
               </div>
             )}
           </div>
@@ -388,7 +375,13 @@ export default function NewMeal() {
 
       {/* Sticky CTA */}
       <div style={{ position: 'absolute', bottom: 96, left: 16, right: 16, zIndex: 5 }}>
-        {step === 1 && (
+        {step === 1 && showText && textInput.trim() && !textResult && (
+          <button className="btn btn-brand" style={{ width: '100%', padding: 16, fontSize: 16 }}
+                  onClick={analyzeText} disabled={textAnalyzing}>
+            {textAnalyzing ? '⏳ מחשב פחמימות...' : '🤖 חשב פחמימות'}
+          </button>
+        )}
+        {step === 1 && !(showText && textInput.trim() && !textResult) && (
           <button className="btn btn-brand" style={{ width: '100%', padding: 16, fontSize: 16 }}
                   onClick={goToStep2} disabled={carbs <= 0 && presugar <= 0}>
             המשך · חישוב מנה
