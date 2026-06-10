@@ -407,8 +407,7 @@ export default function NewMeal() {
                     onClick={goToStep2} disabled={carbs <= 0 && presugar <= 0}>
               💉 חישוב כמה להזריק
             </button>
-            {carbs > 0 && (
-              <button className="btn" style={{
+            <button className="btn" style={{
                 width: '100%', padding: 14, fontSize: 15,
                 background: 'var(--card)', color: 'var(--ink)',
                 border: '1.5px solid var(--hair)', borderRadius: 14,
@@ -416,7 +415,6 @@ export default function NewMeal() {
               }} onClick={saveMealOnly} disabled={saving}>
                 {saving ? 'שומר...' : '🍽️ רשום ארוחה בלבד'}
               </button>
-            )}
           </div>
         )}
         {step === 2 && (
