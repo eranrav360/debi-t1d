@@ -145,7 +145,8 @@ export default function ReportPage() {
 
         {/* Body */}
         <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
-        <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', padding: '8px var(--pad) 140px', display: 'flex', flexDirection: 'column', gap: 'var(--gap-lg)' }}>
+        <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', padding: '8px var(--pad) 140px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gap-lg)' }}>
 
           {/* ── Date range card ── */}
           <div className="card" style={{ padding: 16 }}>
@@ -198,6 +199,7 @@ export default function ReportPage() {
               )}
             </>
           )}
+        </div>
         </div>
         </div>
 
