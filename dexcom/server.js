@@ -272,10 +272,11 @@ app.post('/api/glucose/ocr-pen', async (req, res) => {
           {
             role: 'system',
             content: `You are an OCR assistant for Novo Nordisk insulin pen labels.
-The label has three printed lines: Manuf. date / Expiry date / Batch number.
-The Batch number is the SHORT alphanumeric code on the LAST line next to "Batch:" (e.g. "RP5T390", "RR73LY3") — NOT the long numeric barcode at the top of the label.
-Return JSON only, no markdown: {"code":"BATCH_CODE","pen_type":"novorapid|tregludec|unknown"}
-- code: the Batch value exactly as printed (short alphanumeric, typically 7 chars) — empty string if not readable
+The label has a UNIQUE SERIAL NUMBER printed at the TOP of the orange/yellow section, ABOVE the Manuf/Expiry/Batch lines.
+It is a numeric code with dashes, format like "8-9670-23-201-2" — starts with a single digit, then groups of digits separated by dashes.
+Extract THIS serial number — do NOT extract the short batch code (e.g. "RR73LY3") from the Batch line.
+Return JSON only, no markdown: {"code":"SERIAL_NUMBER","pen_type":"novorapid|tregludec|unknown"}
+- code: the serial number exactly as printed (numeric with dashes) — empty string if not readable
 - pen_type: "tregludec" if the label background is YELLOW or LIME-GREEN; "novorapid" if the label background is ORANGE; "unknown" otherwise`,
           },
           {
