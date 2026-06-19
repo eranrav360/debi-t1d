@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { recordNovorapid, recordTregludec, updatePostSugar, getTregludecHistory } from '../api'
 import { ScreenShell } from '../components/ScreenShell'
 import { GL } from '../components/Bits'
@@ -23,7 +24,8 @@ function nowTimeStr() {
 }
 
 export default function RecordInjection() {
-  const [type, setType] = useState('novorapid')
+  const [searchParams] = useSearchParams()
+  const [type, setType] = useState(() => searchParams.get('tab') === 'tregludec' ? 'tregludec' : 'novorapid')
 
   // NovoRapid fields
   const [preSugar,         setPreSugar]         = useState('')

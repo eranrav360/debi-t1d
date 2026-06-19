@@ -180,10 +180,10 @@ export default function Dashboard() {
 
             {/* Tregludec warning — compact */}
             {data && !data.today_tregludec && (
-              <div style={{
+              <div onClick={() => navigate('/injection?tab=tregludec')} style={{
                 padding: '7px 10px', borderRadius: 10,
                 background: 'var(--warn-soft)', border: '1px solid #e0b87a',
-                fontSize: 11, color: '#7a5a15', fontWeight: 600,
+                fontSize: 11, color: '#7a5a15', fontWeight: 600, cursor: 'pointer',
               }}>
                 ⚠️ טרגלודק לא נרשם היום
               </div>
@@ -381,15 +381,15 @@ export default function Dashboard() {
 
         {/* ── Tregludec warning ── */}
         {data && !data.today_tregludec && (
-          <div style={{
+          <div onClick={() => navigate('/injection?tab=tregludec')} style={{
             padding: '12px 14px', borderRadius: 'var(--r)',
             background: 'var(--warn-soft)', border: '1px solid #e0b87a',
-            display: 'flex', alignItems: 'center', gap: 10,
+            display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
           }}>
             <span style={{ fontSize: 18 }}>⚠️</span>
             <div className="col" style={{ flex: 1, gap: 0 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#7a5a15' }}>טרגלודק לא נרשם היום</span>
-              <span className="muted" style={{ fontSize: 12 }}>רשמי בדף ההזרקה →</span>
+              <span className="muted" style={{ fontSize: 12 }}>לחצי להזרקה →</span>
             </div>
           </div>
         )}
