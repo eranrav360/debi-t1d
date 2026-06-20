@@ -169,11 +169,6 @@ async function fetchReadings(maxCount, minutes = 1440) {
   return Array.isArray(data) ? data : [];
 }
 
-async function fetchLatestReading() {
-  const readings = await fetchReadings(1);
-  return readings[0] ?? null;
-}
-
 // ─── Persist ───────────────────────────────────────────────────────────────────
 
 async function persistReading(raw) {
@@ -283,22 +278,55 @@ async function backfillHistory() {
 
 // ─── Poll ──────────────────────────────────────────────────────────────────────
 
+async function getLastStoredTimestamp() {
+  const { rows } = await db.query(
+    'SELECT timestamp FROM glucose_readings ORDER BY timestamp DESC LIMIT 1'
+  );
+  return rows[0]?.timestamp || null;
+}
+
 async function poll() {
   try {
-    const raw = await fetchLatestReading();
-    if (!raw) {
+    // Detect signal-loss gaps: if the last stored reading is older than 12 minutes
+    // (more than one poll interval), fetch enough readings to cover the whole gap.
+    const lastTs   = await getLastStoredTimestamp();
+    const gapMs    = lastTs ? Date.now() - new Date(lastTs).getTime() : 0;
+    const gapMin   = Math.floor(gapMs / 60_000);
+    const isGap    = gapMin > 12;
+
+    let readings;
+    if (isGap) {
+      // Cap recovery at 24 h per poll; longer outages are covered by backfillHistory on restart.
+      const recoverMin   = Math.min(gapMin + 15, 1440);
+      const recoverCount = Math.ceil(recoverMin / 5) + 5;
+      console.log(`[dexcom-poller] Gap of ${gapMin} min detected — backfilling up to ${recoverCount} readings…`);
+      readings = await fetchReadings(recoverCount, recoverMin);
+    } else {
+      readings = await fetchReadings(1);
+    }
+
+    if (!readings || readings.length === 0) {
       console.log('[dexcom-poller] No reading returned');
       return;
     }
 
-    const saved = await persistReading(raw);
-    if (saved) {
+    // Persist oldest-first so the chart fills in chronologically
+    let savedCount = 0;
+    for (const raw of [...readings].reverse()) {
+      const row = await persistReading(raw);
+      if (row) savedCount++;
+    }
+
+    if (savedCount > 0) {
+      const latest = readings[0];
+      const trend  = normalizeTrend(latest.Trend);
       console.log(
-        `[dexcom-poller] Saved: ${saved.value} mg/dL  ${saved.trend_arrow}  ` +
-        `${new Date(saved.timestamp).toISOString()}`
+        `[dexcom-poller] Saved ${savedCount} reading(s). ` +
+        `Latest: ${latest.Value} mg/dL  ${TREND_ARROW_MAP[trend] || '?'}  ` +
+        `${parseWt(latest.WT).toISOString()}`
       );
     } else {
-      console.log('[dexcom-poller] Duplicate reading — skipped');
+      console.log('[dexcom-poller] Duplicate reading(s) — skipped');
     }
   } catch (err) {
     if (err.sessionExpired) {
