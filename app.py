@@ -280,9 +280,11 @@ def delete_novorapid(record_id):
 
 @app.route('/api/tregludec', methods=['GET'])
 def list_tregludec():
+    limit = int(request.args.get('limit', 30))
     with get_conn() as conn:
         result = conn.execute(
-            text('SELECT * FROM tregludec_records ORDER BY recorded_date DESC LIMIT 30')
+            text('SELECT * FROM tregludec_records ORDER BY recorded_date DESC LIMIT :lim'),
+            {'lim': limit}
         )
         return jsonify(rows(result))
 
