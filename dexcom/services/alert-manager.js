@@ -68,11 +68,19 @@ async function ensureTables() {
       INSERT INTO alert_rules
         (name, name_he, condition_type, threshold, duration_minutes, cooldown_minutes)
       VALUES
-        ('Urgent Low',     'סוכר נמוך דחוף',   'BELOW',  60,   0,  15),
-        ('Low Sustained',  'סוכר נמוך ממושך',  'BELOW',  70,  10,  15),
-        ('High Sustained', 'סוכר גבוה ממושך',  'ABOVE', 180, 120,  30)
+        ('Urgent Low',     'סוכר נמוך דחוף',   'BELOW',      60,   0,  15),
+        ('Low Sustained',  'סוכר נמוך ממושך',  'BELOW',      70,  10,  15),
+        ('High Sustained', 'סוכר גבוה ממושך',  'ABOVE',     180, 120,  30),
+        ('Rapid Drop',     'ירידה מהירה',       'RAPID_DROP', 20,   0,  15)
     `);
     console.log('[alert-manager] Default rules seeded');
+  } else {
+    // Add the rapid-drop rule to existing deployments if not already present
+    await db.query(`
+      INSERT INTO alert_rules (name, name_he, condition_type, threshold, duration_minutes, cooldown_minutes)
+      SELECT 'Rapid Drop', 'ירידה מהירה', 'RAPID_DROP', 20, 0, 15
+      WHERE NOT EXISTS (SELECT 1 FROM alert_rules WHERE condition_type = 'RAPID_DROP')
+    `);
   }
 }
 
@@ -135,6 +143,8 @@ async function getLastFired(ruleId) {
   return rows[0]?.fired_at ?? null;
 }
 
+// Returns false if should not fire, or a truthy value (may carry extra data).
+// For RAPID_DROP: returns the drop amount (a number) so callers can embed it in the message.
 async function shouldFire(rule, reading) {
   if (!rule.enabled) return false;
 
@@ -146,6 +156,19 @@ async function shouldFire(rule, reading) {
   }
 
   const { condition_type: type, threshold, duration_minutes: dur } = rule;
+
+  // Rapid drop: compare current reading against the immediately preceding one
+  if (type === 'RAPID_DROP') {
+    const { rows } = await db.query(
+      `SELECT value FROM glucose_readings
+       WHERE  timestamp < $1
+       ORDER  BY timestamp DESC LIMIT 1`,
+      [reading.timestamp]
+    );
+    if (!rows[0]) return false;
+    const drop = rows[0].value - reading.value;
+    return drop >= threshold ? drop : false; // return the drop amount when firing
+  }
 
   if (dur === 0) {
     // Immediate: single reading triggers the rule
@@ -176,6 +199,10 @@ function buildMessage(rule, reading) {
   const arrow = reading.trend_arrow || reading.trendArrow || '';
   const dur   = rule.duration_minutes;
 
+  if (rule.condition_type === 'RAPID_DROP') {
+    const drop = reading.dropAmount ? ` (ירד ${reading.dropAmount} נקודות)` : '';
+    return `📉 *דבי* - ירידה מהירה בסוכר!${drop}\n${v} mg/dL ${arrow}`;
+  }
   if (rule.condition_type === 'BELOW' && dur === 0) {
     return `🚨 *דבי* - סוכר נמוך מאוד!\n${v} mg/dL ${arrow}`;
   }
@@ -243,8 +270,11 @@ async function check(reading) {
         cooldown_minutes: rule.cooldownMinutes,
         name_he:          rule.nameHe,
       };
-      if (await shouldFire(r, reading)) {
-        await fireAlert(r, reading);
+      const result = await shouldFire(r, reading);
+      if (result) {
+        // For RAPID_DROP, shouldFire returns the drop amount; embed it in the reading
+        const augmented = typeof result === 'number' ? { ...reading, dropAmount: result } : reading;
+        await fireAlert(r, augmented);
       }
     }
   } catch (err) {
