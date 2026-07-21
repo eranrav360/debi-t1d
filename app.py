@@ -131,11 +131,15 @@ def init_db():
             'ALTER TABLE tregludec_records ADD COLUMN IF NOT EXISTS had_hypo_morning INTEGER DEFAULT NULL',
             'ALTER TABLE tregludec_records ADD COLUMN IF NOT EXISTS recorded_time TEXT DEFAULT NULL',
             'ALTER TABLE tregludec_records ADD COLUMN IF NOT EXISTS pre_sugar INTEGER DEFAULT NULL',
+            'ALTER TABLE tregludec_records ADD COLUMN IF NOT EXISTS injection_site TEXT DEFAULT NULL',
+            'ALTER TABLE novorapid_records ADD COLUMN IF NOT EXISTS injection_site TEXT DEFAULT NULL',
         ]
         migrations_sqlite = [
             'ALTER TABLE tregludec_records ADD COLUMN had_hypo_morning INTEGER DEFAULT NULL',
             'ALTER TABLE tregludec_records ADD COLUMN recorded_time TEXT DEFAULT NULL',
             'ALTER TABLE tregludec_records ADD COLUMN pre_sugar INTEGER DEFAULT NULL',
+            'ALTER TABLE tregludec_records ADD COLUMN injection_site TEXT DEFAULT NULL',
+            'ALTER TABLE novorapid_records ADD COLUMN injection_site TEXT DEFAULT NULL',
         ]
         for sql in (migrations_pg if IS_PG else migrations_sqlite):
             try:
@@ -229,10 +233,11 @@ def add_novorapid():
     now = datetime.now().strftime('%Y-%m-%d %H:%M')
     with get_conn() as conn:
         record_id = db_insert(conn,
-            'INSERT INTO novorapid_records (recorded_at, total_carbs, pre_sugar, dose_given, notes) VALUES (:at, :carbs, :pre, :dose, :notes)',
+            'INSERT INTO novorapid_records (recorded_at, total_carbs, pre_sugar, dose_given, notes, injection_site) VALUES (:at, :carbs, :pre, :dose, :notes, :site)',
             {'at': d.get('recorded_at', now), 'carbs': float(d.get('total_carbs', 0)),
              'pre': int(d['pre_sugar']) if d.get('pre_sugar') else None,
-             'dose': float(d['dose_given']), 'notes': d.get('notes', '')}
+             'dose': float(d['dose_given']), 'notes': d.get('notes', ''),
+             'site': d.get('injection_site') or None}
         )
         for item in d.get('meal_items', []):
             conn.execute(
@@ -298,17 +303,19 @@ def add_tregludec():
     rec_date  = d.get('recorded_date') or date.today().isoformat()
     rec_time  = d.get('recorded_time') or datetime.now().strftime('%H:%M')
     pre_sugar = int(d['pre_sugar']) if d.get('pre_sugar') else None
+    site      = d.get('injection_site') or None
     with get_conn() as conn:
         db_insert(conn,
             '''INSERT INTO tregludec_records
-               (recorded_date, dose, notes, had_hypo_morning, recorded_time, pre_sugar)
-               VALUES (:d, :dose, :notes, :hypo, :rt, :ps)''',
+               (recorded_date, dose, notes, had_hypo_morning, recorded_time, pre_sugar, injection_site)
+               VALUES (:d, :dose, :notes, :hypo, :rt, :ps, :site)''',
             {'d': rec_date, 'dose': dose, 'notes': notes,
-             'hypo': hypo_val, 'rt': rec_time, 'ps': pre_sugar}
+             'hypo': hypo_val, 'rt': rec_time, 'ps': pre_sugar, 'site': site}
         )
     lines = [f'💉 *טרגלודק* — {dose:.0f} יחידות']
     lines.append(f'📅 {rec_date}  🕐 {rec_time}')
     if pre_sugar: lines.append(f'סוכר: {pre_sugar} mg/dL')
+    if site:      lines.append(f'אזור: {site}')
     if notes:     lines.append(f'הערות: {notes}')
     send_whatsapp('\n'.join(lines))
     return jsonify({'status': 'ok'})

@@ -31,6 +31,7 @@ export default function RecordInjection() {
   const [preSugar,         setPreSugar]         = useState('')
   const [dose,             setDose]             = useState('')
   const [notes,            setNotes]            = useState('')
+  const [novoSite,         setNovoSite]         = useState('')
   const [recordedAt,       setRecordedAt]       = useState(nowLocal())
   const [saved,            setSaved]            = useState(null)
   const [postSugar,        setPostSugar]        = useState('')
@@ -41,6 +42,7 @@ export default function RecordInjection() {
   // Tregludec fields
   const [tregDose,        setTregDose]        = useState('')
   const [tregNotes,       setTregNotes]       = useState('')
+  const [tregSite,        setTregSite]        = useState('')
   const [tregDate,        setTregDate]        = useState(todayISO())
   const [tregTime,        setTregTime]        = useState(nowTimeStr())
   const [tregSugar,       setTregSugar]       = useState('')
@@ -86,6 +88,7 @@ export default function RecordInjection() {
       pre_sugar: preSugar ? parseInt(preSugar) : null,
       dose_given: parseFloat(dose),
       notes,
+      injection_site: novoSite || null,
       meal_items: [],
       recorded_at: recordedAt.replace('T', ' ')
     })
@@ -106,6 +109,7 @@ export default function RecordInjection() {
     setPreSugar('')
     setDose('')
     setNotes('')
+    setNovoSite('')
     setPostSugar('')
     setRecordedAt(nowLocal())
     setIsNovoPast(false)
@@ -117,6 +121,7 @@ export default function RecordInjection() {
     await recordTregludec({
       dose: parseFloat(tregDose),
       notes: tregNotes,
+      injection_site: tregSite || null,
       recorded_date: tregDate,
       recorded_time: tregTime,
       pre_sugar: tregSugar ? parseInt(tregSugar) : null,
@@ -130,6 +135,7 @@ export default function RecordInjection() {
     setTregSaved(false)
     setTregDose('')
     setTregNotes('')
+    setTregSite('')
     setTregDate(todayISO())
     setTregTime(nowTimeStr())
     setHadHypo(false)
@@ -246,6 +252,9 @@ export default function RecordInjection() {
               <input type="text" value={notes} onChange={e => setNotes(e.target.value)}
                      placeholder="לדוג׳ לחם, סלט, קוטג׳..." className="input"/>
             </div>
+
+            {/* ── Injection site ── */}
+            <SiteSelector value={novoSite} onChange={setNovoSite}/>
 
             <button onClick={handleRecordNovo} disabled={!dose || saving}
                     className="btn btn-primary btn-full">
@@ -384,6 +393,9 @@ export default function RecordInjection() {
                      onChange={e => setTregNotes(e.target.value)} className="input"/>
             </div>
 
+            {/* ── Injection site ── */}
+            <SiteSelector value={tregSite} onChange={setTregSite}/>
+
             {/* ── Hypo checkbox ── */}
             <label style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
@@ -417,5 +429,40 @@ export default function RecordInjection() {
         )}
       </div>
     </ScreenShell>
+  )
+}
+
+// ── Injection site selector ───────────────────────────────────────────────────
+
+const SITES = ['בטן', 'ירך ימין', 'ירך שמאל', 'מותן ימין', 'מותן שמאל']
+
+function SiteSelector({ value, onChange }) {
+  return (
+    <div className="form-group">
+      <label>אזור הזרקה (אופציונלי)</label>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {SITES.map(s => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => onChange(s === value ? '' : s)}
+            style={{
+              border: `1.5px solid ${value === s ? 'var(--brand)' : 'var(--hair)'}`,
+              background: value === s ? 'var(--brand-tint)' : 'transparent',
+              color: value === s ? 'var(--brand-deep)' : 'var(--ink-2)',
+              borderRadius: 999,
+              padding: '7px 14px',
+              fontFamily: 'inherit',
+              fontSize: 13,
+              fontWeight: value === s ? 700 : 400,
+              cursor: 'pointer',
+              transition: 'all .15s',
+            }}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }
