@@ -8,6 +8,7 @@ import { IconMeal, IconSyringe, IconCamera, IconBolt, IconArrow } from '../compo
 
 const SENSOR_DAYS = 10
 const GLUC_BASE   = (import.meta.env.VITE_API_URL || '') + '/api/glucose'
+const API_BASE    = (import.meta.env.VITE_API_URL || '') + '/api'
 const TREND_OPTS  = [1, 3, 6, 12, 24]
 
 function trendDir(trend) {
@@ -48,10 +49,15 @@ export default function Dashboard() {
   const [replacingSensor, setReplacingSensor] = useState(false)
   const [trendHours,      setTrendHours]      = useState(3)
   const [trendHistory,    setTrendHistory]    = useState([])
+  const [equipment,       setEquipment]       = useState(null)
+  const [recordingEquip,  setRecordingEquip]  = useState(false)
 
   const { currentReading, stats: glucoseStats, isStale, isConnected } = useGlucose()
 
   useEffect(() => { getDashboard().then(setData) }, [])
+  useEffect(() => {
+    fetch(`${API_BASE}/equipment`).then(r => r.json()).then(setEquipment).catch(() => {})
+  }, [])
 
   useEffect(() => {
     fetch(`${GLUC_BASE}/history?hours=${trendHours}`)
@@ -59,6 +65,21 @@ export default function Dashboard() {
       .then(d => setTrendHistory(d.readings ?? []))
       .catch(() => {})
   }, [trendHours, currentReading?.id])
+
+  async function handleEquipmentCollected() {
+    setRecordingEquip(true)
+    try {
+      await fetch(`${API_BASE}/equipment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      const d = await fetch(`${API_BASE}/equipment`).then(r => r.json())
+      setEquipment(d)
+    } finally {
+      setRecordingEquip(false)
+    }
+  }
 
   async function handleSensorReplace() {
     setReplacingSensor(true)
@@ -359,6 +380,9 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* ── Ask Debi ── */}
+        <AskDebi/>
+
         {/* ── TIR bar (24 h) ── */}
         {glucoseStats && glucoseStats.readings > 0 && (
           <div>
@@ -422,6 +446,56 @@ export default function Dashboard() {
             ⚠️ {stats.hypo_warning}
           </div>
         )}
+
+        {/* ── Equipment collection banner ── */}
+        {(() => {
+          const nextDue = equipment?.next_due || null
+          const today   = new Date(); today.setHours(0,0,0,0)
+          const days    = nextDue
+            ? Math.round((new Date(nextDue) - today) / 86_400_000)
+            : null
+          const overdue  = days !== null && days < 0
+          const urgent   = days !== null && days <= 14
+          const bg       = overdue ? '#FFF0F0' : urgent ? 'var(--warn-soft)' : '#F0FDF4'
+          const border   = overdue ? '#FECACA' : urgent ? '#e0b87a'          : '#BBF7D0'
+          const txtColor = overdue ? '#991b1b' : urgent ? '#7a5a15'          : '#15803D'
+          const daysLabel = days === null  ? 'לא נרשם איסוף'
+                          : overdue        ? `באיחור של ${-days} ימים`
+                          : days === 0     ? 'היום!'
+                          : `בעוד ${days} ימים`
+          const icon     = overdue ? '🔴' : urgent ? '📦' : '📦'
+          const todayCollected = days !== null && days >= 87 // recorded today → next is ~90d out
+          return (
+            <div style={{
+              padding: '12px 14px', borderRadius: 'var(--r)',
+              background: bg, border: `1px solid ${border}`,
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <span style={{ fontSize: 18 }}>{icon}</span>
+              <div className="col" onClick={() => navigate('/equipment')} style={{ flex: 1, gap: 1, cursor: 'pointer' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: txtColor }}>ציוד רפואי — כללית</span>
+                <span style={{ fontSize: 12, color: txtColor, opacity: 0.8 }}>
+                  {nextDue
+                    ? `איסוף הבא: ${new Date(nextDue).toLocaleDateString('he-IL')} · ${daysLabel}`
+                    : daysLabel}
+                </span>
+              </div>
+              <button
+                onClick={handleEquipmentCollected}
+                disabled={recordingEquip}
+                style={{
+                  border: `1px solid ${border}`, background: 'white',
+                  borderRadius: 999, padding: '5px 10px', fontSize: 11,
+                  fontWeight: 700, cursor: recordingEquip ? 'default' : 'pointer',
+                  color: txtColor, fontFamily: 'inherit', flexShrink: 0,
+                  opacity: recordingEquip ? 0.5 : 1,
+                }}
+              >
+                {recordingEquip ? '...' : 'נלקח ✓'}
+              </button>
+            </div>
+          )
+        })()}
 
         {/* ── Sensor + pens card ── */}
         {data && (
@@ -487,9 +561,6 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-
-        {/* ── Ask Debi ── */}
-        <AskDebi/>
 
       </div>
 
