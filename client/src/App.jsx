@@ -12,6 +12,7 @@ import More             from './pages/More'
 import SettingsPage     from './pages/SettingsPage'
 import PenPage          from './pages/PenPage'
 import ReportPage       from './pages/ReportPage'
+import EquipmentPage    from './pages/EquipmentPage'
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="/settings"   element={<SettingsPage />} />
         <Route path="/pens"       element={<PenPage />} />
         <Route path="/report"     element={<ReportPage />} />
+        <Route path="/equipment"  element={<EquipmentPage />} />
       </Routes>
     </BrowserRouter>
   )

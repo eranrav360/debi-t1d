@@ -122,6 +122,11 @@ def init_db():
             opened_at DATE NOT NULL, expires_at DATE NOT NULL,
             is_active INTEGER DEFAULT 1,
             expiry_alerted INTEGER DEFAULT 0)''',
+        '''CREATE TABLE IF NOT EXISTS equipment_collections (
+            id {PK},
+            collected_at DATE NOT NULL,
+            notes TEXT DEFAULT \'\',
+            reminder_sent INTEGER DEFAULT 0)''',
     ]
     with get_conn() as conn:
         for ddl in ddl_templates:
@@ -252,12 +257,14 @@ def add_novorapid():
     dose   = float(d['dose_given'])
     pre    = int(d['pre_sugar']) if d.get('pre_sugar') else None
     notes  = d.get('notes', '').strip()
+    site   = (d.get('injection_site') or '').strip()
     items  = d.get('meal_items', [])
     lines  = ['💉 *הזרקה נרשמה*']
     lines.append(f'מנה: *{dose} יח׳ נובורפיד*')
     if carbs:  lines.append(f'פחמימות: {carbs:.0f}ג׳')
     if pre:    lines.append(f'סוכר לפני: {pre} mg/dL')
     if items:  lines.append('ארוחה: ' + ', '.join(i['food_name'] for i in items))
+    if site:   lines.append(f'אזור: {site}')
     if notes:  lines.append(f'הערות: {notes}')
     send_whatsapp('\n'.join(lines))
 
@@ -741,6 +748,79 @@ def discard_pen(pen_id):
         conn.commit()
     return jsonify({'status': 'ok'})
 
+# --- Equipment collections API ---
+
+EQUIPMENT_CYCLE_DAYS = 90
+
+@app.route('/api/equipment', methods=['GET'])
+def list_equipment():
+    with get_conn() as conn:
+        result = conn.execute(text(
+            'SELECT * FROM equipment_collections ORDER BY collected_at DESC'
+        ))
+        records = rows(result)
+    today = date.today()
+    next_due = None
+    if records:
+        last_date = date.fromisoformat(str(records[0]['collected_at'])[:10])
+        next_due = (last_date + timedelta(days=EQUIPMENT_CYCLE_DAYS)).isoformat()
+    return jsonify({'records': records, 'next_due': next_due})
+
+@app.route('/api/equipment', methods=['POST'])
+def add_equipment():
+    d = request.json or {}
+    collected_at = d.get('collected_at') or date.today().isoformat()
+    notes = d.get('notes', '').strip()
+    with get_conn() as conn:
+        new_id = db_insert(conn,
+            'INSERT INTO equipment_collections (collected_at, notes) VALUES (:at, :notes)',
+            {'at': collected_at, 'notes': notes}
+        )
+    collected_date = date.fromisoformat(collected_at)
+    next_due = collected_date + timedelta(days=EQUIPMENT_CYCLE_DAYS)
+    lines = [f'📦 *ציוד ת״א נאסף!*']
+    if notes:
+        lines.append(notes)
+    lines.append(f'האיסוף הבא: {next_due.strftime("%d/%m/%Y")}')
+    send_whatsapp('\n'.join(lines))
+    return jsonify({'id': new_id, 'status': 'ok', 'next_due': next_due.isoformat()})
+
+# --- Equipment reminder background checker ---
+
+def _check_equipment_reminder():
+    try:
+        today = date.today()
+        with get_conn() as conn:
+            result = conn.execute(text(
+                'SELECT id, collected_at, reminder_sent FROM equipment_collections ORDER BY collected_at DESC LIMIT 1'
+            ))
+            last = row(result)
+        if not last:
+            return
+        if last['reminder_sent']:
+            return
+        last_date = date.fromisoformat(str(last['collected_at'])[:10])
+        next_due  = last_date + timedelta(days=EQUIPMENT_CYCLE_DAYS)
+        days_left = (next_due - today).days
+        if 0 <= days_left <= 7:
+            msg = f'📦 *דבי* - תזכורת איסוף ציוד מהכללית\nהאיסוף הבא בעוד *{days_left} ימים* ({next_due.strftime("%d/%m/%Y")})'
+            send_whatsapp(msg)
+            with get_conn() as conn2:
+                conn2.execute(
+                    text('UPDATE equipment_collections SET reminder_sent=1 WHERE id=:id'),
+                    {'id': last['id']}
+                )
+                conn2.commit()
+            print(f'[equipment] reminder sent — {days_left} days until {next_due}')
+    except Exception as e:
+        print(f'[equipment] reminder check error: {e}')
+
+def _equipment_reminder_loop():
+    _check_equipment_reminder()
+    while True:
+        time.sleep(24 * 60 * 60)
+        _check_equipment_reminder()
+
 # --- Pen expiry background alerter ---
 
 def _check_pen_expiry_once():
@@ -825,6 +905,7 @@ def serve_spa(path):
 # Run init_db when imported by Gunicorn (or any WSGI server), not just __main__
 init_db()
 threading.Thread(target=_pen_expiry_loop, daemon=True).start()
+threading.Thread(target=_equipment_reminder_loop, daemon=True).start()
 
 if __name__ == '__main__':
     print("דבי | ניהול סוכרת סוג 1 — http://localhost:5000")

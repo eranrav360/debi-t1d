@@ -105,6 +105,12 @@ export const IconDoc     = (p) => <Icon {...p}>
   <line x1="10" y1="9" x2="8" y2="9"/>
 </Icon>
 
+export const IconBox     = (p) => <Icon {...p}>
+  <path d="M21 8l-9-5L3 8v8l9 5 9-5V8z"/>
+  <path d="M3 8l9 5 9-5"/>
+  <path d="M12 13v8"/>
+</Icon>
+
 export const IconMic     = (p) => <Icon {...p}>
   <rect x="9" y="3" width="6" height="12" rx="3"/>
   <path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
