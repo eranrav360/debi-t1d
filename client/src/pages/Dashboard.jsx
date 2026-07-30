@@ -447,56 +447,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── Equipment collection banner ── */}
-        {(() => {
-          const nextDue = equipment?.next_due || null
-          const today   = new Date(); today.setHours(0,0,0,0)
-          const days    = nextDue
-            ? Math.round((new Date(nextDue) - today) / 86_400_000)
-            : null
-          const overdue  = days !== null && days < 0
-          const urgent   = days !== null && days <= 14
-          const bg       = overdue ? '#FFF0F0' : urgent ? 'var(--warn-soft)' : '#F0FDF4'
-          const border   = overdue ? '#FECACA' : urgent ? '#e0b87a'          : '#BBF7D0'
-          const txtColor = overdue ? '#991b1b' : urgent ? '#7a5a15'          : '#15803D'
-          const daysLabel = days === null  ? 'לא נרשם איסוף'
-                          : overdue        ? `באיחור של ${-days} ימים`
-                          : days === 0     ? 'היום!'
-                          : `בעוד ${days} ימים`
-          const icon     = overdue ? '🔴' : urgent ? '📦' : '📦'
-          const todayCollected = days !== null && days >= 87 // recorded today → next is ~90d out
-          return (
-            <div style={{
-              padding: '12px 14px', borderRadius: 'var(--r)',
-              background: bg, border: `1px solid ${border}`,
-              display: 'flex', alignItems: 'center', gap: 10,
-            }}>
-              <span style={{ fontSize: 18 }}>{icon}</span>
-              <div className="col" onClick={() => navigate('/equipment')} style={{ flex: 1, gap: 1, cursor: 'pointer' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: txtColor }}>ציוד רפואי — כללית</span>
-                <span style={{ fontSize: 12, color: txtColor, opacity: 0.8 }}>
-                  {nextDue
-                    ? `איסוף הבא: ${new Date(nextDue).toLocaleDateString('he-IL')} · ${daysLabel}`
-                    : daysLabel}
-                </span>
-              </div>
-              <button
-                onClick={handleEquipmentCollected}
-                disabled={recordingEquip}
-                style={{
-                  border: `1px solid ${border}`, background: 'white',
-                  borderRadius: 999, padding: '5px 10px', fontSize: 11,
-                  fontWeight: 700, cursor: recordingEquip ? 'default' : 'pointer',
-                  color: txtColor, fontFamily: 'inherit', flexShrink: 0,
-                  opacity: recordingEquip ? 0.5 : 1,
-                }}
-              >
-                {recordingEquip ? '...' : 'נלקח ✓'}
-              </button>
-            </div>
-          )
-        })()}
-
         {/* ── Sensor + pens card ── */}
         {data && (
           <div className="card card-warm" style={{ padding: 14 }}>
@@ -561,6 +511,54 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+        {/* ── Equipment collection banner ── */}
+        {(() => {
+          const nextDue = equipment?.next_due || null
+          const today   = new Date(); today.setHours(0,0,0,0)
+          const days    = nextDue
+            ? Math.round((new Date(nextDue) - today) / 86_400_000)
+            : null
+          const overdue  = days !== null && days < 0
+          const urgent   = days !== null && days <= 14
+          const bg       = overdue ? '#FFF0F0' : urgent ? 'var(--warn-soft)' : '#F0FDF4'
+          const border   = overdue ? '#FECACA' : urgent ? '#e0b87a'          : '#BBF7D0'
+          const txtColor = overdue ? '#991b1b' : urgent ? '#7a5a15'          : '#15803D'
+          const daysLabel = days === null ? 'לא נרשם איסוף'
+                          : overdue       ? `באיחור של ${-days} ימים`
+                          : days === 0    ? 'היום!'
+                          : `בעוד ${days} ימים`
+          return (
+            <div style={{
+              padding: '12px 14px', borderRadius: 'var(--r)',
+              background: bg, border: `1px solid ${border}`,
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <span style={{ fontSize: 18 }}>📦</span>
+              <div className="col" onClick={() => navigate('/equipment')} style={{ flex: 1, gap: 1, cursor: 'pointer' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: txtColor }}>ציוד רפואי — כללית</span>
+                <span style={{ fontSize: 12, color: txtColor, opacity: 0.8 }}>
+                  {nextDue
+                    ? `איסוף הבא: ${new Date(nextDue).toLocaleDateString('he-IL')} · ${daysLabel}`
+                    : daysLabel}
+                </span>
+              </div>
+              <button
+                onClick={handleEquipmentCollected}
+                disabled={recordingEquip}
+                style={{
+                  border: `1px solid ${border}`, background: 'white',
+                  borderRadius: 999, padding: '5px 10px', fontSize: 11,
+                  fontWeight: 700, cursor: recordingEquip ? 'default' : 'pointer',
+                  color: txtColor, fontFamily: 'inherit', flexShrink: 0,
+                  opacity: recordingEquip ? 0.5 : 1,
+                }}
+              >
+                {recordingEquip ? '...' : 'נלקח ✓'}
+              </button>
+            </div>
+          )
+        })()}
 
       </div>
 
