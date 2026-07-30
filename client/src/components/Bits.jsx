@@ -37,7 +37,7 @@ export const GL = {
 export function Sparkline({
   values = [], width = 280, height = 60, color = 'var(--good)',
   fill = true, band = null, dots = false, last = true, padX = 4, padY = 6,
-  ticks = null,
+  ticks = null, discrete = false,
 }) {
   if (!values.length) return null
 
@@ -99,8 +99,8 @@ export function Sparkline({
         />
       )}
 
-      {/* Gradient area fill */}
-      {fill && <>
+      {/* Gradient area fill — hidden in discrete mode */}
+      {fill && !discrete && <>
         <defs>
           <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity="0.22"/>
@@ -110,15 +110,31 @@ export function Sparkline({
         <path d={area} fill={`url(#${id})`}/>
       </>}
 
-      {/* Main line */}
-      <path d={path} fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+      {/* Main line — hidden in discrete mode */}
+      {!discrete && <path d={path} fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>}
 
-      {dots && pts.map((p, i) => (
+      {/* Discrete dots — each colored by glucose value */}
+      {discrete && pts.map((p, i) => {
+        const v   = values[i]
+        const dc  = v < 70 ? 'var(--low)' : v > 180 ? 'var(--warn)' : 'var(--good)'
+        const isLast = i === pts.length - 1
+        return isLast ? (
+          <g key={i}>
+            <circle cx={p[0]} cy={p[1]} r="6" fill="#fff"/>
+            <circle cx={p[0]} cy={p[1]} r="4" fill={dc}/>
+          </g>
+        ) : (
+          <circle key={i} cx={p[0]} cy={p[1]} r="3.5" fill={dc} opacity="0.85"/>
+        )
+      })}
+
+      {/* Small dots when dots prop used (non-discrete) */}
+      {dots && !discrete && pts.map((p, i) => (
         <circle key={i} cx={p[0]} cy={p[1]} r="1.6" fill={color} opacity={i === pts.length - 1 ? 1 : 0.35}/>
       ))}
 
-      {/* Latest-point dot */}
-      {last && (
+      {/* Latest-point dot (line mode only) */}
+      {last && !discrete && (
         <>
           <circle cx={last_[0]} cy={last_[1]} r="6" fill="#fff"/>
           <circle cx={last_[0]} cy={last_[1]} r="3.5" fill={color}/>

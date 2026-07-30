@@ -237,7 +237,7 @@ export default function Dashboard() {
                 {sparkValues.length > 1 ? (
                   <Sparkline
                     values={sparkValues} width={sparkLandscape} height={72}
-                    color={glColor} band={[70, 180]} ticks={[70, 180, 250]} fill last={!isStale}
+                    color={glColor} band={[70, 180]} ticks={[70, 180, 250]} discrete last={!isStale}
                   />
                 ) : (
                   <div style={{ height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -370,7 +370,7 @@ export default function Dashboard() {
             {sparkValues.length > 1 ? (
               <Sparkline
                 values={sparkValues} width={sparkPortrait} height={90}
-                color={glColor} band={[70, 180]} ticks={[50, 70, 180, 250, 300]} fill last={!isStale}
+                color={glColor} band={[70, 180]} ticks={[50, 70, 180, 250, 300]} discrete last={!isStale}
               />
             ) : (
               <div style={{ height: 90, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
