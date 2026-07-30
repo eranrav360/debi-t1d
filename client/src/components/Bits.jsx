@@ -39,6 +39,7 @@ export function Sparkline({
   fill = true, band = null, dots = false, last = true, padX = 4, padY = 6,
   ticks = null, discrete = false,
 }) {
+  const [hovered, setHovered] = useState(null) // index of hovered dot
   if (!values.length) return null
 
   // Reserve right margin for tick labels when ticks are provided
@@ -115,16 +116,44 @@ export function Sparkline({
 
       {/* Discrete dots — each colored by glucose value */}
       {discrete && pts.map((p, i) => {
-        const v   = values[i]
-        const dc  = v < 70 ? 'var(--low)' : v > 180 ? 'var(--warn)' : 'var(--good)'
+        const v      = values[i]
+        const dc     = v < 70 ? 'var(--low)' : v > 180 ? 'var(--warn)' : 'var(--good)'
         const isLast = i === pts.length - 1
-        return isLast ? (
-          <g key={i}>
-            <circle cx={p[0]} cy={p[1]} r="6" fill="#fff"/>
-            <circle cx={p[0]} cy={p[1]} r="4" fill={dc}/>
+        const isHov  = hovered === i
+        return (
+          <g key={i}
+            onMouseEnter={() => setHovered(i)}
+            onMouseLeave={() => setHovered(null)}
+            style={{ cursor: 'default' }}
+          >
+            {/* Invisible hit area so thin gaps are still hoverable */}
+            <circle cx={p[0]} cy={p[1]} r="10" fill="transparent"/>
+            {isLast ? (
+              <>
+                <circle cx={p[0]} cy={p[1]} r={isHov ? 8 : 6} fill="#fff" style={{ transition: 'r .1s' }}/>
+                <circle cx={p[0]} cy={p[1]} r={isHov ? 6 : 4} fill={dc} style={{ transition: 'r .1s' }}/>
+              </>
+            ) : (
+              <circle cx={p[0]} cy={p[1]} r={isHov ? 5.5 : 3.5} fill={dc} opacity={isHov ? 1 : 0.85} style={{ transition: 'r .1s' }}/>
+            )}
+            {/* Tooltip */}
+            {isHov && (() => {
+              const label   = String(v)
+              const tw      = label.length * 7 + 10
+              const tx      = Math.min(Math.max(p[0] - tw / 2, 2), width - tw - 2)
+              const ty      = p[1] - (isLast ? 16 : 14)
+              const boxY    = ty - 13
+              return (
+                <g>
+                  <rect x={tx} y={boxY} width={tw} height={16} rx="4" fill={dc} opacity="0.95"/>
+                  <text x={tx + tw / 2} y={boxY + 11} textAnchor="middle"
+                    fontSize="10" fontWeight="700" fontFamily="Rubik,sans-serif" fill="#fff">
+                    {label}
+                  </text>
+                </g>
+              )
+            })()}
           </g>
-        ) : (
-          <circle key={i} cx={p[0]} cy={p[1]} r="3.5" fill={dc} opacity="0.85"/>
         )
       })}
 
