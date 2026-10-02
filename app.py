@@ -138,6 +138,7 @@ def init_db():
             'ALTER TABLE tregludec_records ADD COLUMN IF NOT EXISTS pre_sugar INTEGER DEFAULT NULL',
             'ALTER TABLE tregludec_records ADD COLUMN IF NOT EXISTS injection_site TEXT DEFAULT NULL',
             'ALTER TABLE novorapid_records ADD COLUMN IF NOT EXISTS injection_site TEXT DEFAULT NULL',
+            'ALTER TABLE sensor_changes ADD COLUMN IF NOT EXISTS serial TEXT DEFAULT NULL',
         ]
         migrations_sqlite = [
             'ALTER TABLE tregludec_records ADD COLUMN had_hypo_morning INTEGER DEFAULT NULL',
@@ -145,6 +146,7 @@ def init_db():
             'ALTER TABLE tregludec_records ADD COLUMN pre_sugar INTEGER DEFAULT NULL',
             'ALTER TABLE tregludec_records ADD COLUMN injection_site TEXT DEFAULT NULL',
             'ALTER TABLE novorapid_records ADD COLUMN injection_site TEXT DEFAULT NULL',
+            'ALTER TABLE sensor_changes ADD COLUMN serial TEXT DEFAULT NULL',
         ]
         for sql in (migrations_pg if IS_PG else migrations_sqlite):
             try:
@@ -386,10 +388,18 @@ def ping():
 @app.route('/api/sensor', methods=['POST'])
 def record_sensor_change():
     now = datetime.now().strftime('%Y-%m-%d %H:%M')
+    # Serial = GS1 AI (21) from the sensor's DataMatrix (optional, up to 20 chars)
+    serial = str((request.get_json(silent=True) or {}).get('serial') or '').strip()
+    if serial and not re.fullmatch(r'[0-9A-Za-z]{4,20}', serial):
+        return jsonify({'error': 'invalid serial'}), 400
     with get_conn() as conn:
-        db_insert(conn, 'INSERT INTO sensor_changes (changed_at) VALUES (:at)', {'at': now})
-    send_whatsapp('🔄 *חיישן Dexcom הוחלף*\nתוקף ל-10 ימים מ-' + now)
-    return jsonify({'status': 'ok', 'changed_at': now})
+        db_insert(conn, 'INSERT INTO sensor_changes (changed_at, serial) VALUES (:at, :serial)',
+                  {'at': now, 'serial': serial or None})
+    msg = '🔄 *חיישן Dexcom הוחלף*\nתוקף ל-10 ימים מ-' + now
+    if serial:
+        msg += '\nמס׳ חיישן: ' + serial
+    send_whatsapp(msg)
+    return jsonify({'status': 'ok', 'changed_at': now, 'serial': serial or None})
 
 @app.route('/api/sensor/status', methods=['GET'])
 def sensor_status():

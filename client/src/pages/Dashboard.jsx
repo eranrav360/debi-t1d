@@ -4,6 +4,7 @@ import { getDashboard, recordSensorChange } from '../api'
 import { useGlucose } from '../hooks/useGlucose'
 import { useLandscape } from '../hooks/useLandscape'
 import { GL, Sparkline, SensorPie, AskDebi, TabBar } from '../components/Bits'
+import SensorSheet from '../components/SensorSheet'
 import { IconMeal, IconSyringe, IconCamera, IconBolt, IconArrow } from '../components/Icons'
 
 const SENSOR_DAYS = 10
@@ -46,7 +47,7 @@ export default function Dashboard() {
   const isLandscape = useLandscape()
 
   const [data,            setData]            = useState(null)
-  const [replacingSensor, setReplacingSensor] = useState(false)
+  const [sensorSheet,     setSensorSheet]     = useState(false)
   const [trendHours,      setTrendHours]      = useState(3)
   const [trendHistory,    setTrendHistory]    = useState([])
   const [equipment,       setEquipment]       = useState(null)
@@ -81,12 +82,11 @@ export default function Dashboard() {
     }
   }
 
-  async function handleSensorReplace() {
-    setReplacingSensor(true)
-    await recordSensorChange()
+  async function handleSensorReplace(serial) {
+    await recordSensorChange(serial)
     const fresh = await getDashboard()
     setData(fresh)
-    setReplacingSensor(false)
+    setSensorSheet(false)
   }
 
   const sparkValues = trendHistory.map(r => r.value)
@@ -457,16 +457,21 @@ export default function Dashboard() {
                 <div className="col" style={{ gap: 0 }}>
                   <span style={{ fontSize: 14, fontWeight: 600 }}>חיישן Dexcom</span>
                   {daysLeft !== null
-                    ? <span className="muted" style={{ fontSize: 12 }}>נותרו {daysLeft} ימים</span>
+                    ? <span className="muted" style={{ fontSize: 12 }}>
+                        נותרו {daysLeft} ימים
+                        {data.latest_sensor?.serial && (
+                          <span style={{ fontFamily: 'monospace', fontSize: 10, color: 'var(--ink-3)' }} dir="ltr"> · {data.latest_sensor.serial}</span>
+                        )}
+                      </span>
                     : <span className="muted" style={{ fontSize: 12, color: 'var(--bad)' }}>לא נרשמה החלפה</span>}
                 </div>
               </div>
-              <button onClick={handleSensorReplace} disabled={replacingSensor} style={{
+              <button onClick={() => setSensorSheet(true)} style={{
                 border: '1px solid var(--hair)', background: 'var(--card)',
                 borderRadius: 999, padding: '6px 12px', fontSize: 12,
                 fontWeight: 600, cursor: 'pointer', color: 'var(--ink-2)',
               }}>
-                {replacingSensor ? '...' : 'החלפתי 🔄'}
+                החלפתי 🔄
               </button>
             </div>
             {/* Pen status */}
@@ -563,6 +568,14 @@ export default function Dashboard() {
       </div>
 
       <TabBar active="home"/>
+
+      {sensorSheet && (
+        <SensorSheet
+          latestSerial={data?.latest_sensor?.serial || null}
+          onSave={handleSensorReplace}
+          onClose={() => setSensorSheet(false)}
+        />
+      )}
     </div>
   )
 }
