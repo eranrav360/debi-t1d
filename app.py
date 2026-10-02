@@ -4,6 +4,7 @@ from sqlalchemy import create_engine, text, event
 from sqlalchemy.pool import NullPool, StaticPool
 import os, json, statistics, re, threading, time
 from datetime import datetime, date, timedelta
+from zoneinfo import ZoneInfo
 import urllib.request, urllib.error
 
 # --- Database setup ---
@@ -385,6 +386,14 @@ def ping():
 
 # --- Dexcom Sensor API ---
 
+SENSOR_DAYS = 10
+_IL_TZ = ZoneInfo('Asia/Jerusalem')  # the server runs in UTC; messages are read in Israel
+_HE_DAYS = ['שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת', 'ראשון']  # datetime.weekday(): Monday = 0
+
+def _fmt_il(dt):
+    """e.g. 'יום ראשון 12.10 בשעה 08:51'"""
+    return f'יום {_HE_DAYS[dt.weekday()]} {dt:%d.%m} בשעה {dt:%H:%M}'
+
 @app.route('/api/sensor', methods=['POST'])
 def record_sensor_change():
     now = datetime.now().strftime('%Y-%m-%d %H:%M')
@@ -395,7 +404,11 @@ def record_sensor_change():
     with get_conn() as conn:
         db_insert(conn, 'INSERT INTO sensor_changes (changed_at, serial) VALUES (:at, :serial)',
                   {'at': now, 'serial': serial or None})
-    msg = '🔄 *חיישן Dexcom הוחלף*\nתוקף ל-10 ימים מ-' + now
+    changed_il = datetime.now(_IL_TZ)
+    next_il    = changed_il + timedelta(days=SENSOR_DAYS)
+    msg = ('🔄 *חיישן Dexcom הוחלף*\n'
+           f'הוחלף: {_fmt_il(changed_il)}\n'
+           f'החלפה הבאה: {_fmt_il(next_il)}')
     if serial:
         msg += '\nמס׳ חיישן: ' + serial
     send_whatsapp(msg)
