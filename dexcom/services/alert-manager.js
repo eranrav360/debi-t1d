@@ -21,7 +21,9 @@ const fetch = require('node-fetch');
 const WAHA_URL      = process.env.WAHA_URL      || 'https://waha.raviv360.com';
 const WAHA_KEY      = process.env.WAHA_KEY;
 const WAHA_GROUP_ID = process.env.WAHA_GROUP_ID || '120363321560243969@g.us';
-const NTFY_TOPIC    = process.env.NTFY_TOPIC;
+const NTFY_TOPIC      = process.env.NTFY_TOPIC;
+const PUSHOVER_TOKEN  = process.env.PUSHOVER_TOKEN;
+const PUSHOVER_USER   = process.env.PUSHOVER_USER;
 
 // Injected by server.js via init()
 let db = null;
@@ -242,6 +244,31 @@ async function sendNtfy(title, body, priority) {
   }
 }
 
+async function sendPushover(title, message) {
+  if (!PUSHOVER_TOKEN || !PUSHOVER_USER) return;
+  try {
+    const params = new URLSearchParams({
+      token:    PUSHOVER_TOKEN,
+      user:     PUSHOVER_USER,
+      title,
+      message,
+      priority: '2',    // emergency: loops until acknowledged
+      retry:    '30',   // retry every 30 seconds
+      expire:   '600',  // give up after 10 minutes
+      sound:    'siren',
+    });
+    const res = await fetch('https://api.pushover.net/1/messages.json', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body:    params.toString(),
+    });
+    if (!res.ok) console.warn(`[alert-manager] Pushover ${res.status}: ${await res.text()}`);
+    else console.log('[alert-manager] Pushover sent:', title);
+  } catch (err) {
+    console.error('[alert-manager] Pushover delivery failed:', err.message);
+  }
+}
+
 async function sendWhatsApp(text) {
   if (!WAHA_KEY) {
     console.warn('[alert-manager] WAHA_KEY not set — skipping WhatsApp');
@@ -263,6 +290,11 @@ async function sendWhatsApp(text) {
   }
 }
 
+function isCritical(rule) {
+  return rule.condition_type === 'RAPID_DROP' ||
+    (rule.condition_type === 'BELOW' && rule.duration_minutes === 0);
+}
+
 async function fireAlert(rule, reading, testMode = false) {
   const message  = buildMessage(rule, reading);
   const priority = getNtfyPriority(rule);
@@ -271,6 +303,7 @@ async function fireAlert(rule, reading, testMode = false) {
   await Promise.all([
     sendWhatsApp(testMode ? `🧪 *בדיקה* — ${message}` : message),
     sendNtfy(rule.name_he, ntfyBody, priority),
+    isCritical(rule) && !testMode ? sendPushover(rule.name_he, ntfyBody) : Promise.resolve(),
   ]);
   if (!testMode) {
     await db.query(
