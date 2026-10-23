@@ -21,6 +21,7 @@ const fetch = require('node-fetch');
 const WAHA_URL      = process.env.WAHA_URL      || 'https://waha.raviv360.com';
 const WAHA_KEY      = process.env.WAHA_KEY;
 const WAHA_GROUP_ID = process.env.WAHA_GROUP_ID || '120363321560243969@g.us';
+const NTFY_TOPIC    = process.env.NTFY_TOPIC;
 
 // Injected by server.js via init()
 let db = null;
@@ -216,6 +217,31 @@ function buildMessage(rule, reading) {
   return `⚠️ *דבי* - ${rule.name_he}\n${v} mg/dL ${arrow}`;
 }
 
+function getNtfyPriority(rule) {
+  if (rule.condition_type === 'RAPID_DROP') return 'urgent';
+  if (rule.condition_type === 'BELOW' && rule.duration_minutes === 0) return 'urgent';
+  if (rule.condition_type === 'BELOW') return 'high';
+  return 'default';
+}
+
+async function sendNtfy(title, body, priority) {
+  if (!NTFY_TOPIC) return;
+  try {
+    const res = await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+      method:  'POST',
+      headers: {
+        'Title':    title,
+        'Priority': priority,
+        'Tags':     priority === 'urgent' ? 'rotating_light,warning' : 'warning',
+      },
+      body,
+    });
+    if (!res.ok) console.warn(`[alert-manager] ntfy ${res.status}: ${await res.text()}`);
+  } catch (err) {
+    console.error('[alert-manager] ntfy delivery failed:', err.message);
+  }
+}
+
 async function sendWhatsApp(text) {
   if (!WAHA_KEY) {
     console.warn('[alert-manager] WAHA_KEY not set — skipping WhatsApp');
@@ -238,9 +264,14 @@ async function sendWhatsApp(text) {
 }
 
 async function fireAlert(rule, reading, testMode = false) {
-  const message = buildMessage(rule, reading);
+  const message  = buildMessage(rule, reading);
+  const priority = getNtfyPriority(rule);
+  const ntfyBody = `${reading.value} mg/dL ${reading.trend_arrow || reading.trendArrow || ''}`.trim();
   console.log(`[alert-manager] ${testMode ? '[TEST] ' : ''}${rule.name_he} — ${reading.value} mg/dL`);
-  await sendWhatsApp(testMode ? `🧪 *בדיקה* — ${message}` : message);
+  await Promise.all([
+    sendWhatsApp(testMode ? `🧪 *בדיקה* — ${message}` : message),
+    sendNtfy(rule.name_he, ntfyBody, priority),
+  ]);
   if (!testMode) {
     await db.query(
       `INSERT INTO alert_history (rule_id, value, message) VALUES ($1, $2, $3)`,
