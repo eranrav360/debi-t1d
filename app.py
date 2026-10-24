@@ -31,6 +31,54 @@ else:
 app = Flask(__name__, static_folder='client/dist', static_url_path='')
 CORS(app, origins=os.environ.get('CORS_ORIGINS', '*').split(','))
 
+# --- Family access code --------------------------------------------------------
+# Every /api call must carry X-Debi-Key (the code the app asks for once per device).
+# DEBI_AUTH_MODE=report only logs calls without it (to roll out without breaking
+# anyone); =enforce rejects them. Both live in .env, never in the repo.
+import hmac
+
+def _dotenv(name):
+    v = os.environ.get(name)
+    if v:
+        return v
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')) as f:
+            for line in f:
+                if line.startswith(name + '='):
+                    return line.split('=', 1)[1].strip().strip('"')
+    except OSError:
+        pass
+    return None
+
+ACCESS_KEY = _dotenv('DEBI_ACCESS_KEY')
+AUTH_MODE = (_dotenv('DEBI_AUTH_MODE') or 'report').lower()
+_AUTH_LOG = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'auth-missing.log')
+
+def _key_ok():
+    got = request.headers.get('X-Debi-Key') or ''
+    return bool(ACCESS_KEY) and hmac.compare_digest(got.encode(), ACCESS_KEY.encode())
+
+@app.before_request
+def _require_access_key():
+    if not ACCESS_KEY or request.method == 'OPTIONS' or not request.path.startswith('/api/'):
+        return None
+    if request.path in ('/api/ping', '/api/auth/check') or _key_ok():
+        return None
+    if AUTH_MODE == 'enforce':
+        return jsonify({'error': 'unauthorized'}), 401
+    try:
+        with open(_AUTH_LOG, 'a') as f:
+            f.write(f"{datetime.now().isoformat(timespec='seconds')}\t{request.headers.get('X-Real-IP', request.remote_addr)}\t{request.method} {request.path}\t{(request.headers.get('User-Agent') or '')[:60]}\n")
+    except OSError:
+        pass
+    return None
+
+@app.route('/api/auth/check', methods=['GET'])
+def auth_check():
+    """Lets the app verify a typed code (works in report mode too)."""
+    return (jsonify({'ok': True}), 200) if _key_ok() else (jsonify({'ok': False}), 401)
+
+
 # --- WhatsApp notifications (fire-and-forget via WAHA) ---
 _WAHA_URL     = os.environ.get('WAHA_URL', '').rstrip('/')
 _WAHA_KEY     = os.environ.get('WAHA_KEY', '')

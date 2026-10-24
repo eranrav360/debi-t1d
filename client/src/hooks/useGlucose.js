@@ -111,7 +111,7 @@ export function useGlucose({ historyHours = 24, statsHours = 24 } = {}) {
     clearInterval(pollTimerRef.current)
   }, [])
 
-  const openSSE = useCallback(() => {
+  const openSSE = useCallback(async () => {
     if (sseRef.current) {
       sseRef.current.close()
       sseRef.current = null
@@ -124,7 +124,14 @@ export function useGlucose({ historyHours = 24, statsHours = 24 } = {}) {
       return
     }
 
-    const es = new EventSource(`${GLUCOSE_BASE}/stream`)
+    // The stream can't send the access-code header: get a one-minute single-use ticket first.
+    let ticket = ''
+    try {
+      const r = await fetch(`${GLUCOSE_BASE}/stream-ticket`, { method: 'POST' })
+      ticket = (await r.json()).ticket || ''
+    } catch (_) {}
+    if (!mountedRef.current) return
+    const es = new EventSource(`${GLUCOSE_BASE}/stream${ticket ? `?t=${encodeURIComponent(ticket)}` : ''}`)
     sseRef.current = es
 
     es.onopen = () => {

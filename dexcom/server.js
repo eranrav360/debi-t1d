@@ -37,6 +37,40 @@ app.use(cors({
     : '*',
 }));
 
+// ─── Family access code (see app.py) ───────────────────────────────────────────
+// Every /api/glucose call needs X-Debi-Key. The live stream can't send headers, so the
+// app first gets a one-minute single-use ticket (POST /stream-ticket) and opens
+// /stream?t=… — the code itself never appears in a URL or access log.
+const crypto = require('crypto');
+const fs = require('fs');
+const ACCESS_KEY = process.env.DEBI_ACCESS_KEY || '';
+const AUTH_MODE = (process.env.DEBI_AUTH_MODE || 'report').toLowerCase();
+const AUTH_LOG = require('path').resolve(__dirname, '../auth-missing.log');
+const streamTickets = new Map(); // ticket -> expiry ms
+
+function keyOk(req) {
+  const got = Buffer.from(String(req.get('X-Debi-Key') || ''));
+  const want = Buffer.from(ACCESS_KEY);
+  return ACCESS_KEY.length > 0 && got.length === want.length && crypto.timingSafeEqual(got, want);
+}
+app.use('/api/glucose', (req, res, next) => {
+  if (!ACCESS_KEY || req.method === 'OPTIONS' || keyOk(req)) return next();
+  if (req.path === '/stream' && req.query.t) {
+    const exp = streamTickets.get(String(req.query.t));
+    streamTickets.delete(String(req.query.t));
+    if (exp && exp > Date.now()) return next();
+  }
+  if (AUTH_MODE === 'enforce') return res.status(401).json({ error: 'unauthorized' });
+  fs.appendFile(AUTH_LOG, `${new Date().toISOString()}\t${req.get('X-Real-IP') || req.ip}\t${req.method} /api/glucose${req.path}\t${String(req.get('User-Agent') || '').slice(0, 60)}\n`, () => {});
+  next();
+});
+app.post('/api/glucose/stream-ticket', (req, res) => {
+  const t = crypto.randomBytes(18).toString('base64url');
+  streamTickets.set(t, Date.now() + 60_000);
+  for (const [k, exp] of streamTickets) if (exp < Date.now()) streamTickets.delete(k);
+  res.json({ ticket: t });
+});
+
 const db = new Pool({ connectionString: process.env.DATABASE_URL });
 alerts.init(db);
 
