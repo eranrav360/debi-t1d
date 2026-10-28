@@ -7,9 +7,24 @@ from datetime import datetime, date, timedelta
 from zoneinfo import ZoneInfo
 import urllib.request, urllib.error
 
+# Settings come from the process env, else from .env (pm2 doesn't always pass them)
+def _dotenv(name):
+    v = os.environ.get(name)
+    if v:
+        return v
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')) as f:
+            for line in f:
+                if line.startswith(name + '='):
+                    return line.split('=', 1)[1].strip().strip('"')
+    except OSError:
+        pass
+    return None
+
+
 # --- Database setup ---
 _db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'debi.db')
-_raw_url = os.environ.get('DATABASE_URL', f'sqlite:///{_db_path}')
+_raw_url = _dotenv('DATABASE_URL') or f'sqlite:///{_db_path}'
 # Render gives postgres://, Neon gives postgresql:// — both need postgresql+psycopg2://
 DATABASE_URL = re.sub(r'^postgres(ql)?://', 'postgresql+psycopg2://', _raw_url)
 IS_PG = 'postgresql' in DATABASE_URL
@@ -36,19 +51,6 @@ CORS(app, origins=os.environ.get('CORS_ORIGINS', '*').split(','))
 # DEBI_AUTH_MODE=report only logs calls without it (to roll out without breaking
 # anyone); =enforce rejects them. Both live in .env, never in the repo.
 import hmac
-
-def _dotenv(name):
-    v = os.environ.get(name)
-    if v:
-        return v
-    try:
-        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')) as f:
-            for line in f:
-                if line.startswith(name + '='):
-                    return line.split('=', 1)[1].strip().strip('"')
-    except OSError:
-        pass
-    return None
 
 ACCESS_KEY = _dotenv('DEBI_ACCESS_KEY')
 AUTH_MODE = (_dotenv('DEBI_AUTH_MODE') or 'report').lower()
