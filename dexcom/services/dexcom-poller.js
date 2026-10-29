@@ -34,6 +34,13 @@ const BASE_URL        = SERVERS[(process.env.DEXCOM_SERVER || 'us').toLowerCase(
 const USERNAME        = process.env.DEXCOM_USERNAME;
 const PASSWORD        = process.env.DEXCOM_PASSWORD;
 const POLL_INTERVAL    = 5 * 60 * 1000;  // 5 minutes — matches Dexcom sensor update frequency
+// Poll shortly after each reading is due instead of on a fixed clock: a fixed
+// 5-minute timer can land just before the reading reaches Share and leave it
+// ~4 minutes late. Retry every RETRY_DELAY until it shows up; after a long
+// gap (sensor off / signal loss) fall back to the plain interval.
+const UPLOAD_DELAY     = 40 * 1000;
+const RETRY_DELAY      = 30 * 1000;
+const GAP_FALLBACK     = 15 * 60 * 1000;
 // Dexcom Share API max window per call: 1440 minutes / 288 readings (24 h).
 // For deeper history we use cumulative calls — each call asks for "everything up
 // to N days back" and we slice off the part we already processed in the prior call.
@@ -356,8 +363,24 @@ async function start() {
   await authenticate();
   await backfillHistory();             // one-time catch-up on startup
   await poll();                        // then fetch the very latest
-  setInterval(poll, POLL_INTERVAL);
-  console.log(`[dexcom-poller] Polling every ${POLL_INTERVAL / 60_000} minutes`);
+  scheduleNext();
+  console.log('[dexcom-poller] Polling shortly after each 5-minute reading is due');
+}
+
+async function nextDelay() {
+  try {
+    const lastTs = await getLastStoredTimestamp();
+    if (!lastTs) return POLL_INTERVAL;
+    const age = Date.now() - new Date(lastTs).getTime();
+    if (age > GAP_FALLBACK) return POLL_INTERVAL;
+    return Math.max(POLL_INTERVAL + UPLOAD_DELAY - age, RETRY_DELAY);
+  } catch (_) {
+    return POLL_INTERVAL;
+  }
+}
+
+function scheduleNext() {
+  nextDelay().then(ms => setTimeout(async () => { await poll(); scheduleNext(); }, ms));
 }
 
 start().catch(err => {

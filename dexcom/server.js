@@ -564,5 +564,5 @@ app.listen(PORT, async () => {
   console.log(`[dexcom-server] Listening on :${PORT}`);
   await alerts.ensureTables();
   await initLastSeen();
-  setInterval(checkForNewReadings, 60_000); // 60 s — lets Neon compute go idle between readings
+  setInterval(checkForNewReadings, 10_000); // 10 s — local Postgres, so new readings reach the app right away
 });
